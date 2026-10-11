@@ -230,6 +230,12 @@
           <span class="theme-toggle-label hidden sm:inline">Theme</span>
         </button>
 
+        <!-- Duty Status Quick Switcher -->
+        <button id="navDutyToggleBtn" onclick="toggleCrewDutyStatus()" class="px-3 py-1.5 border-2 border-[#111111] bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-[2px_2px_0px_#111111] transition" title="Toggle On-Duty / Off-Duty Status">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="navDutyDot"></span>
+          <span id="navDutyText">ON-DUTY</span>
+        </button>
+
         <!-- Help Button for Admin Assistance -->
         <button onclick="openCrewHelpModal()" class="btn-secondary text-xs px-3.5 py-1.5 uppercase font-mono tracking-wider font-bold flex items-center gap-1.5 relative" title="Request Admin Help & Dispatch Support">
           <span class="material-symbols-outlined text-sm text-[#E11D2E]">help</span>
@@ -298,6 +304,74 @@
       </div>
     </div>
 
+    <!-- Interactive Emergency SOS Dispatch Modal (Triggered by Map SOS Marker Click or Radar Alert) -->
+    <div id="sosDispatchModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto no-print">
+      <div class="editorial-card-red max-w-lg w-full p-6 sm:p-7 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+        
+        <div class="flex items-center justify-between pb-3 border-b-2 border-[#111111]">
+          <div class="flex items-center gap-3 text-[#E11D2E]">
+            <div class="w-11 h-11 border-2 border-[#E11D2E] bg-red-50 flex items-center justify-center flex-shrink-0">
+              <span class="material-symbols-outlined text-2xl animate-pulse text-[#E11D2E]">emergency</span>
+            </div>
+            <div>
+              <h3 class="font-black text-base text-[#111111] uppercase tracking-tight">🚨 EMERGENCY SOS IN PROXIMITY</h3>
+              <p id="dispatchModalDistance" class="text-xs font-mono text-[#E11D2E] font-bold uppercase mt-0.5">1.8 KM AWAY &bull; WITHIN 3KM DISPATCH ZONE</p>
+            </div>
+          </div>
+          <button onclick="closeSosDispatchModal()" class="p-1 text-[#111111] hover:bg-gray-100 transition" title="Close">
+            <span class="material-symbols-outlined text-xl">close</span>
+          </button>
+        </div>
+
+        <!-- Triage Vitals Summary -->
+        <div class="space-y-2.5 text-xs font-mono border-y-2 border-[#111111] py-3.5 my-1 bg-[#f9fafb] p-3.5">
+          <div class="flex justify-between items-center">
+            <span class="text-[#111111]/70 font-bold uppercase">Victim / Patient:</span>
+            <span id="dispatchModalPatientName" class="font-black text-sm text-[#111111] uppercase">-</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-[#111111]/70 font-bold uppercase">Blood Group:</span>
+            <span id="dispatchModalBloodGroup" class="font-black text-[#E11D2E] text-sm bg-white px-2 py-0.5 border border-[#111111]">-</span>
+          </div>
+          <div class="flex justify-between items-start">
+            <span class="text-[#111111]/70 font-bold uppercase">Severe Allergies:</span>
+            <span id="dispatchModalAllergies" class="font-bold text-amber-700 text-right max-w-[240px]">-</span>
+          </div>
+          <div class="flex justify-between items-start">
+            <span class="text-[#111111]/70 font-bold uppercase">Medications:</span>
+            <span id="dispatchModalMedications" class="font-bold text-[#111111] text-right max-w-[240px]">-</span>
+          </div>
+          <div class="pt-2 border-t border-[#111111]/20">
+            <span class="text-[#111111]/70 block font-bold uppercase mb-1">Distress Message:</span>
+            <p id="dispatchModalMessage" class="text-[#111111] font-sans text-xs bg-white p-2 border border-[#111111]">-</p>
+          </div>
+          <div class="flex justify-between items-center pt-1 text-[11px]">
+            <span class="text-[#111111]/70 font-bold uppercase">Incident GPS Fix:</span>
+            <span id="dispatchModalCoordinates" class="font-mono text-[#E11D2E] font-bold">-</span>
+          </div>
+        </div>
+
+        <!-- Action Controls -->
+        <div class="space-y-2.5 pt-1">
+          <button id="dispatchModalAcceptBtn" onclick="acceptCurrentSosDispatch()" class="btn-danger w-full py-3.5 text-xs uppercase font-mono tracking-wider font-bold shadow-[4px_4px_0px_#111111] flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-base">ambulance</span>
+            <span>ACCEPT DISPATCH &amp; DEPLOY AMBULANCE</span>
+          </button>
+          
+          <div class="flex gap-2">
+            <button onclick="inspectSosPatientInTriage()" class="btn-secondary flex-1 py-2 text-xs uppercase font-mono tracking-wider font-bold flex items-center justify-center gap-1">
+              <span class="material-symbols-outlined text-sm">search</span>
+              <span>Full Triage Record</span>
+            </button>
+            <button onclick="closeSosDispatchModal()" class="btn-secondary flex-1 py-2 text-xs uppercase font-mono tracking-wider font-bold">
+              Dismiss / Standby
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- Command & Rapid Triage Control Bar -->
     <div class="editorial-card p-4 sm:p-5 mb-8">
       <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
@@ -309,7 +383,7 @@
             <input 
               type="text" 
               id="patientQrId" 
-              placeholder="Enter Patient QR Code ID (e.g. RAH-D3200470, RAH-81E49300)..."
+              placeholder="Enter Patient QR Code ID (e.g. RAH-81E49300, KAL-C5083718)..."
               class="w-full pl-10 pr-4 py-3 text-xs sm:text-sm font-mono font-bold text-[#E11D2E] uppercase tracking-wider"
             >
           </div>
@@ -338,9 +412,9 @@
       <div class="mt-3 pt-3 border-t border-[#111111]/15 flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="text-[#111111]/60 font-bold uppercase">Quick Test IDs:</span>
-          <button type="button" onclick="quickSearchPatient('RAH-D3200470')" class="px-2.5 py-0.5 border border-[#111111] bg-[#f9fafb] text-[#111111] font-bold uppercase hover:bg-[#E11D2E] hover:text-white transition">RAH-D3200470</button>
-          <button type="button" onclick="quickSearchPatient('RAH-81E49300')" class="px-2.5 py-0.5 border border-[#111111] bg-[#f9fafb] text-[#111111] font-bold uppercase hover:bg-[#E11D2E] hover:text-white transition">RAH-81E49300</button>
-          <button type="button" onclick="quickSearchPatient('VED-C188E7F9')" class="px-2.5 py-0.5 border border-[#111111] bg-[#f9fafb] text-[#111111] font-bold uppercase hover:bg-[#E11D2E] hover:text-white transition">VED-C188E7F9</button>
+          <button type="button" onclick="quickSearchPatient('RAH-81E49300')" class="px-2.5 py-0.5 border border-[#111111] bg-[#f9fafb] text-[#111111] font-bold uppercase hover:bg-[#E11D2E] hover:text-white transition">RAH-81E49300 (Rahul)</button>
+          <button type="button" onclick="quickSearchPatient('KAL-C5083718')" class="px-2.5 py-0.5 border border-[#111111] bg-[#f9fafb] text-[#111111] font-bold uppercase hover:bg-[#E11D2E] hover:text-white transition">KAL-C5083718 (Kaleel)</button>
+          <button type="button" onclick="quickSearchPatient('VED-C188E7F9')" class="px-2.5 py-0.5 border border-[#111111] bg-[#f9fafb] text-[#111111] font-bold uppercase hover:bg-[#E11D2E] hover:text-white transition">VED-C188E7F9 (Vedika)</button>
         </div>
         <div class="flex items-center gap-3 text-[#111111]/70 font-bold uppercase">
           <span class="flex items-center gap-1.5">
@@ -353,106 +427,206 @@
       </div>
     </div>
 
-    <!-- ============================================== -->
-    <!-- STATE 1: TACTICAL STANDBY DECK (When No Patient Active) -->
-    <!-- ============================================== -->
-    <div id="standbyDeck" class="space-y-6">
+    <!-- Top Tactical Telemetry 3-Card Strip -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       
-      <!-- Top Tactical Telemetry 3-Card Strip -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        
-        <div class="editorial-card p-5 space-y-2">
-          <div class="flex items-center justify-between pb-2 border-b border-[#111111]/15">
-            <span class="text-[10px] font-mono font-bold uppercase text-[#111111]/60">Dispatch Unit Status</span>
-            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-700 text-[10px] font-mono font-bold uppercase">ACTIVE ON-DUTY</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 border-2 border-[#111111] bg-gray-50 flex items-center justify-center flex-shrink-0">
-              <span class="material-symbols-outlined text-[#E11D2E] text-2xl">ambulance</span>
-            </div>
-            <div>
-              <p class="font-black text-sm uppercase text-[#111111]">Rapid Response Unit</p>
-              <p class="text-xs font-mono text-[#111111]/70 font-bold mt-0.5">Tactical Paramedic Terminal</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="editorial-card p-5 space-y-2">
-          <div class="flex items-center justify-between pb-2 border-b border-[#111111]/15">
-            <span class="text-[10px] font-mono font-bold uppercase text-[#111111]/60">Live SOS Frequency</span>
-            <span class="px-2 py-0.5 bg-red-100 text-[#E11D2E] border border-[#E11D2E] text-[10px] font-mono font-bold uppercase flex items-center gap-1">
-              <span class="live-dot"></span> LISTENING
+      <div class="editorial-card p-5 space-y-2">
+        <div class="flex items-center justify-between pb-2 border-b border-[#111111]/15">
+          <span class="text-[10px] font-mono font-bold uppercase text-[#111111]/60">Dispatch Unit Status</span>
+          <div class="flex items-center gap-2">
+            <span id="crewDutyBadge" class="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-700 text-[10px] font-mono font-bold uppercase flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" id="crewDutyBadgeDot"></span>
+              <span id="crewDutyBadgeText">ON-DUTY</span>
             </span>
+            <button id="toggleDutyBtn" onclick="toggleCrewDutyStatus()" class="px-2 py-0.5 border border-[#111111] bg-white hover:bg-[#111111] hover:text-white text-[10px] font-mono font-bold uppercase transition flex items-center gap-1 shadow-[1px_1px_0px_#111111]" title="Switch between On-Duty and Off-Duty">
+              <span class="material-symbols-outlined text-xs" id="toggleDutyIcon">bedtime</span>
+              <span id="toggleDutyBtnText">Go Off-Duty</span>
+            </button>
           </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 border-2 border-[#111111] bg-gray-50 flex items-center justify-center flex-shrink-0" id="crewUnitIconWrapper">
+            <span class="material-symbols-outlined text-[#E11D2E] text-2xl" id="crewUnitIcon">ambulance</span>
+          </div>
+          <div>
+            <p class="font-black text-sm uppercase text-[#111111]" id="crewDutyTitle">Rapid Response Unit</p>
+            <p class="text-xs font-mono text-[#111111]/70 font-bold mt-0.5" id="crewDutySubtitle">Tactical Paramedic Terminal</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="editorial-card p-5 space-y-2">
+        <div class="flex items-center justify-between pb-2 border-b border-[#111111]/15">
+          <span class="text-[10px] font-mono font-bold uppercase text-[#111111]/60">Live SOS Frequency</span>
+          <span class="px-2 py-0.5 bg-red-100 text-[#E11D2E] border border-[#E11D2E] text-[10px] font-mono font-bold uppercase flex items-center gap-1">
+            <span class="live-dot"></span> LISTENING
+          </span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 border-2 border-[#111111] bg-gray-50 flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-[#E11D2E] text-2xl">sensors</span>
+          </div>
+          <div>
+            <p class="font-black text-sm uppercase text-[#111111]">Socket.IO Realtime Beacon</p>
+            <p class="text-xs font-mono text-[#111111]/70 font-bold mt-0.5">0 Active Incidents in Queue</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="editorial-card p-5 space-y-2">
+        <div class="flex items-center justify-between pb-2 border-b border-[#111111]/15">
+          <span class="text-[10px] font-mono font-bold uppercase text-[#111111]/60">Trauma Center Routing</span>
+          <span class="px-2 py-0.5 bg-green-100 text-green-800 border border-green-700 text-[10px] font-mono font-bold uppercase">ACTIVE</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 border-2 border-[#111111] bg-gray-50 flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-[#E11D2E] text-2xl">local_hospital</span>
+          </div>
+          <div>
+            <p class="font-black text-sm uppercase text-[#111111]">Nearest Medical Center</p>
+            <p class="text-xs font-mono text-[#111111]/70 font-bold mt-0.5">10KM radius emergency routing</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Unified Master 12-Column Tactical Workstation -->
+    <div class="grid lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- LEFT 7 COLUMNS: Master 24/7 Tactical Radar & Field Map + Proximity Feed + Hospitals -->
+      <div class="lg:col-span-7 space-y-6">
+        
+        <!-- Off-Duty Tactical Notice Banner (Revealed when OFF-DUTY) -->
+        <div id="crewOffDutyNoticeBanner" class="hidden p-4 bg-amber-50 border-2 border-amber-600 shadow-[4px_4px_0px_#111111] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[#111111]">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 border-2 border-[#111111] bg-gray-50 flex items-center justify-center flex-shrink-0">
-              <span class="material-symbols-outlined text-[#E11D2E] text-2xl">sensors</span>
-            </div>
+            <span class="material-symbols-outlined text-amber-700 text-2xl shrink-0">bedtime</span>
             <div>
-              <p class="font-black text-sm uppercase text-[#111111]">Socket.IO Realtime Beacon</p>
-              <p class="text-xs font-mono text-[#111111]/70 font-bold mt-0.5">0 Active Incidents in Queue</p>
+              <p class="font-black text-xs uppercase tracking-tight text-[#111111]">UNIT CURRENTLY OFF-DUTY &bull; STANDBY MODE</p>
+              <p class="text-[11px] font-mono text-[#111111]/80 mt-0.5">Emergency SOS siren tones and auto-dispatch prompts are muted for this terminal.</p>
+            </div>
+          </div>
+          <button onclick="toggleCrewDutyStatus()" class="btn-primary text-xs px-3.5 py-2 uppercase font-mono tracking-wider font-bold shrink-0 bg-emerald-700 hover:bg-emerald-800 border-[#111111] flex items-center gap-1.5 shadow-[2px_2px_0px_#111111]">
+            <span class="material-symbols-outlined text-sm">play_arrow</span>
+            <span>Clock On-Duty</span>
+          </button>
+        </div>
+
+        <!-- Master Leaflet Tactical Radar Card -->
+        <div id="crewTacticalRadarMapCard" class="editorial-card p-6 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b-2 border-[#111111]">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[#E11D2E] animate-pulse">radar</span>
+              <div>
+                <h3 class="font-black text-sm uppercase text-[#111111]">Tactical 24/7 Dispatch Radar &amp; Field Map</h3>
+                <p id="crewRadarTelemetry" class="text-[10px] font-mono text-[#111111]/70 font-semibold mt-0.5">
+                  Active 24-hr live GPS tracking &bull; 2.5–3.0 KM Emergency SOS Proximity Mesh
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span id="crewGpsStatusBadge" class="px-2 py-0.5 border border-emerald-700 bg-emerald-100 text-emerald-900 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-[2px_2px_0px_#111111]">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                <span id="crewGpsStatusText">GPS ONLINE 24/7</span>
+              </span>
+              <span class="px-2 py-0.5 border border-[#111111] bg-white text-[#111111] text-[10px] font-mono font-bold uppercase tracking-wider">
+                3 KM RADIUS
+              </span>
+              <button type="button" id="centerAmbulanceBtn" onclick="centerMapOnAmbulance()" class="btn-secondary text-[11px] px-2.5 py-1 uppercase font-mono font-bold flex items-center gap-1 shadow-[2px_2px_0px_#111111]" title="Center map on my ambulance">
+                <span class="material-symbols-outlined text-xs text-[#E11D2E]">my_location</span>
+                <span>My Unit</span>
+              </button>
+              <button type="button" id="centerPatientBtn" onclick="centerMapOnPatient()" class="hidden btn-danger text-[11px] px-2.5 py-1 uppercase font-mono font-bold flex items-center gap-1 shadow-[2px_2px_0px_#111111]" title="Center map on patient scene">
+                <span class="material-symbols-outlined text-xs">person_pin_circle</span>
+                <span>Patient</span>
+              </button>
+              <button type="button" id="fitRouteBtn" onclick="fitMapRoute()" class="hidden btn-secondary text-[11px] px-2.5 py-1 uppercase font-mono font-bold flex items-center gap-1 shadow-[2px_2px_0px_#111111]" title="Fit route view">
+                <span class="material-symbols-outlined text-xs">route</span>
+                <span>Fit Route</span>
+              </button>
+              <a id="tacticalGmapsBtn" href="" target="_blank" class="hidden btn-primary text-[11px] px-2.5 py-1 uppercase font-mono font-bold flex items-center gap-1 shadow-[2px_2px_0px_#111111]" title="Open Google Maps Navigation">
+                <span class="material-symbols-outlined text-xs">navigation</span>
+                <span>Nav</span>
+              </a>
+            </div>
+          </div>
+          
+          <!-- Live Tactical Leaflet Map Viewport (Single Master Map) -->
+          <div id="crewTacticalRadarMap" class="w-full h-[460px] sm:h-[490px] border-2 border-[#111111] overflow-hidden relative" style="z-index: 10;">
+            <div class="w-full h-full bg-[#f9fafb] flex flex-col items-center justify-center p-6 text-center space-y-2 select-none">
+              <span class="material-symbols-outlined text-3xl text-[#E11D2E] animate-spin">refresh</span>
+              <p class="font-black text-xs uppercase text-[#111111]">Locking On Satellite GPS Coordinates...</p>
+              <p class="text-[10px] font-mono text-[#111111]/60">Connecting 24-hr Tactical Responder mesh</p>
+            </div>
+          </div>
+
+          <!-- Dynamic In-Map Route Telemetry HUD (Shown when patient or route is active) -->
+          <div id="mapTacticalHud" class="hidden p-3.5 bg-red-50 border-2 border-[#E11D2E] shadow-[3px_3px_0px_#E11D2E] flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+            <div class="flex items-center gap-3">
+              <span class="w-2.5 h-2.5 rounded-full bg-[#E11D2E] animate-pulse flex-shrink-0"></span>
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-bold text-[#111111]/70 uppercase">INCIDENT SCENE:</span>
+                  <strong id="hudPatientName" class="font-black text-sm uppercase text-[#111111]">-</strong>
+                  <span id="hudBloodGroup" class="px-1.5 py-0.5 bg-[#E11D2E] text-white text-[10px] font-mono font-bold uppercase">-</span>
+                </div>
+                <div class="flex items-center gap-2.5 mt-0.5 text-[11px] text-[#111111]/80 font-bold">
+                  <span>DISTANCE: <strong id="hudDistanceText" class="text-[#E11D2E] font-black">0.0 KM</strong></span>
+                  <span>&bull;</span>
+                  <span>EST. ETA: <strong id="hudEtaText" class="text-[#111111] font-black">~0 MIN</strong></span>
+                  <span>&bull;</span>
+                  <span class="text-emerald-800">TACTICAL ROUTE ACTIVE</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <a id="hudGmapsLink" href="" target="_blank" class="btn-primary text-xs px-3.5 py-1.5 uppercase font-mono font-bold tracking-wider flex items-center gap-1.5 shadow-[2px_2px_0px_#111111]">
+                <span class="material-symbols-outlined text-sm">navigation</span>
+                <span>Turn-by-Turn Nav</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Proximity Alerts & Nearby Incidents Feed -->
+          <div class="pt-2 border-t-2 border-[#111111]/15 space-y-2">
+            <div class="flex items-center justify-between text-[11px] font-mono font-bold uppercase text-[#111111]">
+              <span class="flex items-center gap-1.5 text-[#E11D2E]">
+                <span class="live-dot"></span>
+                <span>2–3 KM Emergency SOS Radar Feed:</span>
+              </span>
+              <span id="activeSosCountBadge" class="px-2 py-0.5 border border-[#111111] bg-gray-50 text-[10px]">0 ACTIVE IN ZONE</span>
+            </div>
+            <div id="crewActiveSosFeed" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+              <p class="text-[11px] text-[#111111]/60 font-mono italic p-3 border border-dashed border-[#111111]/20 text-center">
+                ● 24/7 Tactical Scan Active. Standing by for emergency SOS beacons within 3 km perimeter.
+              </p>
             </div>
           </div>
         </div>
 
-        <div class="editorial-card p-5 space-y-2">
-          <div class="flex items-center justify-between pb-2 border-b border-[#111111]/15">
-            <span class="text-[10px] font-mono font-bold uppercase text-[#111111]/60">Trauma Center Routing</span>
-            <span class="px-2 py-0.5 bg-green-100 text-green-800 border border-green-700 text-[10px] font-mono font-bold uppercase">ACTIVE</span>
+        <!-- Recommended Nearby Trauma Centers (Dynamic) -->
+        <div id="hospitalWrapper" class="hidden editorial-card p-6 space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b-2 border-[#111111]">
+            <h3 class="font-black text-sm uppercase text-[#111111] flex items-center gap-2">
+              <span class="material-symbols-outlined text-[#E11D2E]">local_hospital</span>
+              <span>Recommended Nearby Trauma Centers</span>
+            </h3>
+            <span class="px-2 py-0.5 border border-[#111111] bg-white text-[#111111] text-[10px] font-mono font-bold uppercase tracking-wider">10KM RADIUS</span>
           </div>
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 border-2 border-[#111111] bg-gray-50 flex items-center justify-center flex-shrink-0">
-              <span class="material-symbols-outlined text-[#E11D2E] text-2xl">local_hospital</span>
-            </div>
-            <div>
-              <p class="font-black text-sm uppercase text-[#111111]">Nearest Medical Center</p>
-              <p class="text-xs font-mono text-[#111111]/70 font-bold mt-0.5">10KM radius emergency routing</p>
-            </div>
-          </div>
+          <div id="hospitalsList" class="grid sm:grid-cols-1 gap-3"></div>
         </div>
 
       </div>
 
-      <!-- Standby Operational Workspace (12 Columns) -->
-      <div class="grid lg:grid-cols-12 gap-6">
+      <!-- RIGHT 5 COLUMNS: Standby Tools Deck OR Active Patient Triage Sheet -->
+      <div class="lg:col-span-5 space-y-6">
         
-        <!-- Left 7 Columns: Emergency Scene Radar & Map Standby -->
-        <div class="lg:col-span-7 space-y-6">
-          <div class="editorial-card p-6 space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b-2 border-[#111111]">
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-[#E11D2E]">share_location</span>
-                <h3 class="font-black text-sm uppercase text-[#111111]">Tactical Dispatch Radar &amp; Field Map</h3>
-              </div>
-              <span class="px-2 py-0.5 border border-[#111111] bg-gray-50 text-[10px] font-mono font-bold uppercase text-[#111111]">STANDBY MONITOR</span>
-            </div>
-            
-            <p class="text-xs text-[#111111]/70 font-sans font-medium">
-              Standing by for emergency dispatch beacons. When an SOS alert arrives or a patient badge is scanned, live incident GPS coordinates and turn-by-turn routing unlock here automatically.
-            </p>
-
-            <div id="standbyMapPlaceholder" class="w-full h-80 border-2 border-[#111111] bg-[#f9fafb] flex flex-col items-center justify-center p-6 text-center space-y-3 relative overflow-hidden">
-              <div class="w-16 h-16 border-2 border-[#111111] bg-white flex items-center justify-center shadow-[4px_4px_0px_#111111]">
-                <span class="material-symbols-outlined text-3xl text-[#E11D2E] animate-pulse">radar</span>
-              </div>
-              <div>
-                <p class="font-black text-sm uppercase text-[#111111]">Awaiting Incident Triage</p>
-                <p class="text-xs font-mono text-[#111111]/60 mt-1">Scan a Patient QR ID or wait for an incoming live SOS beacon.</p>
-              </div>
-              <div class="pt-2">
-                <button onclick="startQRScanner()" class="btn-primary text-xs px-4 py-2 uppercase font-mono font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_#111111]">
-                  <span class="material-symbols-outlined text-sm">photo_camera</span>
-                  <span>Scan Patient QR Badge</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right 5 Columns: Responder Rapid Tools & Checklist -->
-        <div class="lg:col-span-5 space-y-6">
+        <!-- ============================================== -->
+        <!-- STATE A: STANDBY TOOLS DECK (When No Patient Active) -->
+        <!-- ============================================== -->
+        <div id="standbyDeck" class="space-y-6">
           
-          <!-- Scanner Launcher Hero Card -->
+          <!-- Optical & NFC Scanner Hero Card -->
           <div class="editorial-card p-6 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b-2 border-[#111111]">
               <h3 class="font-black text-sm uppercase text-[#111111] flex items-center gap-2">
@@ -470,6 +644,44 @@
               <span class="material-symbols-outlined text-lg">center_focus_strong</span>
               <span>Open Viewfinder Scanner</span>
             </button>
+          </div>
+
+          <!-- Ambulance Fleet Readiness HUD -->
+          <div class="editorial-card p-6 space-y-3 font-mono text-xs">
+            <div class="flex items-center justify-between pb-2 border-b-2 border-[#111111]">
+              <h3 class="font-black text-xs uppercase text-[#111111] flex items-center gap-2">
+                <span class="material-symbols-outlined text-emerald-600">health_and_safety</span>
+                <span>Unit 108 Readiness HUD</span>
+              </h3>
+              <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-700 text-[9px] font-bold uppercase">100% OPERATIONAL</span>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2.5 pt-1">
+              <div class="p-2.5 bg-[#f9fafb] border border-[#111111]/20 space-y-1">
+                <span class="text-[9px] text-[#111111]/60 uppercase font-bold block">Defibrillator</span>
+                <span class="text-xs font-black text-emerald-700 flex items-center gap-1">
+                  <span class="material-symbols-outlined text-xs">bolt</span> READY / CHARGED
+                </span>
+              </div>
+              <div class="p-2.5 bg-[#f9fafb] border border-[#111111]/20 space-y-1">
+                <span class="text-[9px] text-[#111111]/60 uppercase font-bold block">Medical O2 Tank</span>
+                <span class="text-xs font-black text-emerald-700 flex items-center gap-1">
+                  <span class="material-symbols-outlined text-xs">air</span> 98% CAPACITY
+                </span>
+              </div>
+              <div class="p-2.5 bg-[#f9fafb] border border-[#111111]/20 space-y-1">
+                <span class="text-[9px] text-[#111111]/60 uppercase font-bold block">Trauma Kit</span>
+                <span class="text-xs font-black text-emerald-700 flex items-center gap-1">
+                  <span class="material-symbols-outlined text-xs">medical_services</span> SEALED &amp; STERILE
+                </span>
+              </div>
+              <div class="p-2.5 bg-[#f9fafb] border border-[#111111]/20 space-y-1">
+                <span class="text-[9px] text-[#111111]/60 uppercase font-bold block">Vehicle Fuel</span>
+                <span class="text-xs font-black text-emerald-700 flex items-center gap-1">
+                  <span class="material-symbols-outlined text-xs">local_gas_station</span> 86% FULL
+                </span>
+              </div>
+            </div>
           </div>
 
           <!-- Responder Triage Protocol Checklist -->
@@ -504,261 +716,195 @@
 
         </div>
 
-      </div>
-
-    </div>
-
-    <!-- ============================================== -->
-    <!-- STATE 2: ACTIVE PATIENT TRIAGE PANEL -->
-    <!-- ============================================== -->
-    <div id="patientDetailsPanel" class="hidden space-y-6">
-      
-      <!-- Skeleton Loading State -->
-      <div id="patientSkeleton" class="editorial-card h-96 animate-pulse bg-gray-100"></div>
-
-      <!-- Loaded Patient Content -->
-      <div id="patientContent" class="hidden space-y-6">
-        
-        <!-- 1. Full-Width Patient Identity Hero Banner -->
-        <div class="editorial-card p-6 sm:p-7 space-y-5">
+        <!-- ============================================== -->
+        <!-- STATE B: ACTIVE PATIENT TRIAGE PANEL -->
+        <!-- ============================================== -->
+        <div id="patientDetailsPanel" class="hidden space-y-6">
           
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-5 pb-5 border-b-2 border-[#111111]">
+          <!-- Skeleton Loading State -->
+          <div id="patientSkeleton" class="editorial-card h-96 animate-pulse bg-gray-100"></div>
+
+          <!-- Loaded Patient Content -->
+          <div id="patientContent" class="hidden space-y-5">
             
-            <!-- Patient Photo & Identity -->
-            <div class="flex items-center sm:items-start gap-4 sm:gap-5 flex-1">
-              <div class="relative flex-shrink-0">
-                <img 
-                  id="patPhoto" 
-                  src="/LifeQR.png" 
-                  alt="Patient Photo" 
-                  class="w-24 h-24 sm:w-28 sm:h-28 border-2 border-[#111111] object-cover bg-gray-100 flex-shrink-0 shadow-[4px_4px_0px_#111111]"
-                  onerror="this.onerror=null; this.src='/LifeQR.png';"
-                >
-                <span class="absolute -bottom-1 -right-1 px-1.5 py-0.5 bg-[#E11D2E] text-white text-[9px] font-mono font-bold uppercase border border-white">TRIAGE</span>
-              </div>
+            <!-- Patient Identity Card -->
+            <div class="editorial-card p-5 space-y-4">
               
-              <div class="space-y-1.5 flex-1 min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <h2 class="font-black text-2xl sm:text-3xl text-[#111111] uppercase tracking-tight truncate" id="patName">Rahul Sharma</h2>
-                  <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-700 text-[10px] font-mono font-bold uppercase">VERIFIED</span>
+              <div class="flex items-center justify-between pb-3 border-b-2 border-[#111111]">
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 bg-[#E11D2E] text-white text-[9px] font-mono font-bold uppercase">TRIAGE ACTIVE</span>
+                  <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-700 text-[9px] font-mono font-bold uppercase">VERIFIED</span>
                 </div>
-                
-                <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-mono text-[#111111]/70 font-bold">
-                  <span>PERSON ID: <strong id="patId" class="text-[#E11D2E]">RAH-D3200470</strong></span>
-                  <span>&bull;</span>
-                  <span class="px-2 py-0.5 bg-[#f9fafb] border border-[#111111] text-[#111111]">AGE: <span id="patAge">32 Yrs</span></span>
-                  <span class="px-2 py-0.5 bg-[#f9fafb] border border-[#111111] text-[#111111] capitalize">GENDER: <span id="patGender">MALE</span></span>
-                </div>
-
-                <div class="flex flex-wrap items-center gap-3 text-xs font-mono text-[#111111]/80 pt-1">
-                  <div class="flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-sm text-[#E11D2E]">call</span>
-                    <span>TEL: <strong id="patPhone" class="text-[#111111]">+91 9876543210</strong></span>
-                    <a id="patPhoneCallBtn" href="tel:+919876543210" class="btn-primary py-0.5 px-2 text-[10px] uppercase font-bold ml-1">Call</a>
-                  </div>
-                  <span class="hidden sm:inline">&bull;</span>
-                  <div class="flex items-center gap-1">
-                    <span class="material-symbols-outlined text-sm text-[#111111]/60">location_on</span>
-                    <span id="patAddress" class="truncate max-w-xs font-sans text-xs">Registered Scene Location</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Blood Group Big Highlight Callout & Actions -->
-            <div class="flex items-center gap-4 self-stretch sm:self-auto justify-between sm:justify-end flex-shrink-0">
-              <div class="border-2 border-[#E11D2E] bg-red-50 p-3 sm:p-4 text-center min-w-[120px] shadow-[4px_4px_0px_#E11D2E]">
-                <p class="font-mono text-[10px] font-bold uppercase text-[#E11D2E] tracking-wider">BLOOD GROUP</p>
-                <p class="font-black text-3xl sm:text-4xl text-[#E11D2E] mt-0.5 leading-none" id="patBloodGroup">O+</p>
-              </div>
-
-              <div class="flex flex-col gap-2">
-                <button onclick="resetTriageView()" class="btn-secondary px-4 py-2.5 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_#111111]">
-                  <span class="material-symbols-outlined text-base">arrow_back</span>
-                  <span>New Triage</span>
+                <button onclick="resetTriageView()" class="btn-secondary px-3 py-1 text-[11px] font-mono font-bold uppercase flex items-center gap-1 shadow-[2px_2px_0px_#111111]" title="Clear active patient and return to standby">
+                  <span class="material-symbols-outlined text-xs">close</span>
+                  <span>Standby</span>
                 </button>
               </div>
-            </div>
 
-          </div>
+              <!-- Photo & Demographics -->
+              <div class="flex items-start gap-4">
+                <div class="relative flex-shrink-0">
+                  <img 
+                    id="patPhoto" 
+                    src="/LifeQR.png" 
+                    alt="Patient Photo" 
+                    class="w-20 h-20 sm:w-24 sm:h-24 border-2 border-[#111111] object-cover bg-gray-100 flex-shrink-0 shadow-[3px_3px_0px_#111111]"
+                    onerror="this.onerror=null; this.src='/LifeQR.png';"
+                  >
+                </div>
+                
+                <div class="space-y-1 flex-1 min-w-0">
+                  <h2 class="font-black text-xl sm:text-2xl text-[#111111] uppercase tracking-tight truncate" id="patName">Rahul Sharma</h2>
+                  
+                  <div class="flex flex-wrap items-center gap-2 text-xs font-mono text-[#111111]/70 font-bold">
+                    <span>ID: <strong id="patId" class="text-[#E11D2E]">RAH-81E49300</strong></span>
+                    <span>&bull;</span>
+                    <span id="patAge">32 Yrs</span>
+                    <span>&bull;</span>
+                    <span id="patGender" class="capitalize">MALE</span>
+                  </div>
 
-          <!-- Flash Allergy Warning Banner -->
-          <div id="patAllergyBanner" class="hidden p-3.5 border-2 border-[#E11D2E] bg-red-50 text-[#111111] font-mono text-xs font-bold flex items-center gap-2.5 shadow-[3px_3px_0px_#E11D2E]">
-            <span class="material-symbols-outlined text-lg text-[#E11D2E] animate-bounce">warning</span>
-            <span id="patAllergyBannerText" class="uppercase tracking-wide">ALERT: Patient has severe life-threatening allergies!</span>
-          </div>
+                  <div class="flex items-center gap-2 text-xs font-mono text-[#111111]/80 pt-1">
+                    <span class="material-symbols-outlined text-xs text-[#E11D2E]">call</span>
+                    <span id="patPhone" class="font-bold">+91 9876543210</span>
+                    <a id="patPhoneCallBtn" href="tel:+919876543210" class="btn-primary py-0.5 px-2 text-[10px] uppercase font-bold ml-1">Call</a>
+                  </div>
 
-        </div>
-
-        <!-- 2. Main 2-Column Tactical Workstation -->
-        <div class="grid lg:grid-cols-12 gap-6">
-          
-          <!-- LEFT 7 COLUMNS: Clinical Intelligence & Patient Records -->
-          <div class="lg:col-span-7 space-y-6">
-            
-            <!-- Critical Clinical Vitals Matrix -->
-            <div class="editorial-card p-6 space-y-4">
-              <div class="flex items-center justify-between pb-3 border-b-2 border-[#111111]">
-                <h3 class="font-black text-sm uppercase text-[#111111] flex items-center gap-2">
-                  <span class="material-symbols-outlined text-[#E11D2E]">ecg_heart</span>
-                  <span>Critical Clinical Vitals Matrix</span>
-                </h3>
-                <span class="text-[10px] font-mono font-bold text-[#E11D2E] uppercase">RAPID TRIAGE</span>
+                  <p id="patAddress" class="text-[11px] font-mono text-[#111111]/60 truncate pt-0.5">Registered Scene Location</p>
+                </div>
               </div>
 
-              <div class="grid sm:grid-cols-2 gap-4">
-                
-                <div class="p-4 bg-red-50 border-2 border-[#E11D2E] shadow-[3px_3px_0px_#E11D2E]">
-                  <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-[#E11D2E] mb-1">Blood Group Vitals</p>
-                  <p class="font-black text-2xl text-[#E11D2E]" id="patBlood">O+</p>
+              <!-- Blood Group Callout Card -->
+              <div class="border-2 border-[#E11D2E] bg-red-50 p-3 flex items-center justify-between shadow-[3px_3px_0px_#E11D2E]">
+                <div>
+                  <p class="font-mono text-[9px] font-bold uppercase text-[#E11D2E] tracking-wider">CRITICAL BLOOD GROUP</p>
+                  <p class="font-black text-2xl sm:text-3xl text-[#E11D2E] leading-none mt-0.5" id="patBloodGroup">O+</p>
+                </div>
+                <div class="text-right">
+                  <span class="px-2 py-0.5 bg-[#E11D2E] text-white text-[9px] font-mono font-bold uppercase">TRAUMA PRIORITY</span>
+                </div>
+              </div>
+
+              <!-- Flash Allergy Warning Banner -->
+              <div id="patAllergyBanner" class="hidden p-3 border-2 border-[#E11D2E] bg-red-50 text-[#111111] font-mono text-xs font-bold flex items-center gap-2 shadow-[2px_2px_0px_#E11D2E]">
+                <span class="material-symbols-outlined text-base text-[#E11D2E] animate-bounce">warning</span>
+                <span id="patAllergyBannerText" class="uppercase tracking-wide">ALERT: High-risk patient allergies reported!</span>
+              </div>
+
+            </div>
+
+            <!-- Critical Clinical Vitals Matrix -->
+            <div class="editorial-card p-5 space-y-3 font-mono">
+              <div class="flex items-center justify-between pb-2 border-b-2 border-[#111111]">
+                <h3 class="font-black text-xs uppercase text-[#111111] flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[#E11D2E] text-sm">ecg_heart</span>
+                  <span>Clinical Vitals Matrix</span>
+                </h3>
+                <span class="text-[9px] font-bold text-[#E11D2E] uppercase">RAPID TRIAGE</span>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2.5">
+                <div class="p-2.5 bg-red-50 border-2 border-[#E11D2E] shadow-[2px_2px_0px_#E11D2E]">
+                  <p class="text-[9px] font-bold uppercase tracking-wider text-[#E11D2E] mb-0.5">Blood Type</p>
+                  <p class="font-black text-lg text-[#E11D2E]" id="patBlood">O+</p>
                 </div>
 
-                <div class="p-4 bg-amber-50 border-2 border-amber-600 shadow-[3px_3px_0px_#b45309]">
-                  <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-800 mb-1">High-Risk Lethal Allergies</p>
-                  <p class="text-sm font-bold text-amber-950 font-mono" id="patAllergies">Penicillin, Peanuts</p>
+                <div class="p-2.5 bg-amber-50 border-2 border-amber-600 shadow-[2px_2px_0px_#b45309]">
+                  <p class="text-[9px] font-bold uppercase tracking-wider text-amber-800 mb-0.5">Lethal Allergies</p>
+                  <p class="text-xs font-bold text-amber-950 truncate" id="patAllergies">Penicillin, Peanuts</p>
                 </div>
 
-                <div class="p-4 bg-[#f9fafb] border-2 border-[#111111] shadow-[3px_3px_0px_#111111]">
-                  <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-[#111111]/60 mb-1">Current Regular Prescriptions</p>
-                  <p class="text-sm font-bold text-[#111111] font-mono" id="patMedications">Albuterol Inhaler (PRN)</p>
+                <div class="p-2.5 bg-[#f9fafb] border-2 border-[#111111] shadow-[2px_2px_0px_#111111]">
+                  <p class="text-[9px] font-bold uppercase tracking-wider text-[#111111]/60 mb-0.5">Prescriptions</p>
+                  <p class="text-xs font-bold text-[#111111] truncate" id="patMedications">Albuterol Inhaler</p>
                 </div>
 
-                <div class="p-4 bg-[#f9fafb] border-2 border-[#111111] shadow-[3px_3px_0px_#111111]">
-                  <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-[#111111]/60 mb-1">Chronic Medical Conditions</p>
-                  <p class="text-sm font-bold text-[#111111] font-mono" id="patHealthIssues">Asthma, Cardiac History</p>
+                <div class="p-2.5 bg-[#f9fafb] border-2 border-[#111111] shadow-[2px_2px_0px_#111111]">
+                  <p class="text-[9px] font-bold uppercase tracking-wider text-[#111111]/60 mb-0.5">Chronic Issues</p>
+                  <p class="text-xs font-bold text-[#111111] truncate" id="patHealthIssues">Asthma</p>
                 </div>
-
               </div>
             </div>
 
             <!-- Primary Emergency Contacts -->
-            <div class="editorial-card p-6 space-y-4">
-              <div class="flex items-center justify-between pb-3 border-b-2 border-[#111111]">
-                <h3 class="font-black text-sm uppercase text-[#111111] flex items-center gap-2">
-                  <span class="material-symbols-outlined text-[#E11D2E]">contact_phone</span>
-                  <span>Primary Emergency Contacts</span>
+            <div class="editorial-card p-5 space-y-3">
+              <div class="flex items-center justify-between pb-2 border-b-2 border-[#111111]">
+                <h3 class="font-black text-xs uppercase text-[#111111] flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[#E11D2E] text-sm">contact_phone</span>
+                  <span>Emergency Contacts (ICE)</span>
                 </h3>
-                <span class="text-[10px] font-mono font-bold text-[#111111]/60 uppercase">1-Tap Direct Call</span>
+                <span class="text-[9px] font-mono font-bold text-[#111111]/60 uppercase">1-Tap Direct Call</span>
               </div>
-              <div id="patEmergencyContact" class="space-y-2.5"></div>
+              <div id="patEmergencyContact" class="space-y-2"></div>
             </div>
 
-            <!-- Diagnostic Reports & Uploaded Medical Documents -->
-            <div class="editorial-card p-6 space-y-4">
-              <div class="flex items-center justify-between pb-3 border-b-2 border-[#111111]">
-                <h3 class="font-black text-sm uppercase text-[#111111] flex items-center gap-2">
-                  <span class="material-symbols-outlined text-[#111111]">folder_open</span>
-                  <span>Diagnostic Reports &amp; Clinical Records</span>
-                </h3>
-                <span id="patReportsBadge" class="px-2 py-0.5 border border-[#111111] bg-white text-[10px] font-mono font-bold uppercase text-[#111111]">0 Files</span>
-              </div>
-              <div id="patReportsList" class="space-y-2.5"></div>
-            </div>
-
-            <!-- Clinical Medical History & Recorded Events Timeline -->
-            <div class="editorial-card p-6 space-y-4">
-              <div class="flex items-center justify-between pb-3 border-b-2 border-[#111111]">
-                <h3 class="font-black text-sm uppercase text-[#111111] flex items-center gap-2">
-                  <span class="material-symbols-outlined text-[#111111]">history</span>
-                  <span>Recorded Medical History Timeline</span>
-                </h3>
-                <span class="text-[10px] font-mono font-bold text-[#111111]/60 uppercase">CHRONOLOGICAL</span>
-              </div>
-              <div id="patHistoryList" class="space-y-2.5"></div>
-            </div>
-
-          </div>
-
-          <!-- RIGHT 5 COLUMNS: Field Operations & Incident Controls -->
-          <div class="lg:col-span-5 space-y-6">
-            
             <!-- Incident Checkpoints Logger -->
-            <div class="editorial-card p-6 space-y-4">
-              <div class="flex items-center justify-between pb-3 border-b-2 border-[#111111]">
-                <h3 class="font-black text-sm uppercase text-[#111111] flex items-center gap-2">
-                  <span class="material-symbols-outlined text-[#E11D2E]">checklist</span>
+            <div class="editorial-card p-5 space-y-3 font-mono">
+              <div class="flex items-center justify-between pb-2 border-b-2 border-[#111111]">
+                <h3 class="font-black text-xs uppercase text-[#111111] flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[#E11D2E] text-sm">checklist</span>
                   <span>Incident Checkpoint Tracker</span>
                 </h3>
-                <span id="checkpointStatusBadge" class="text-[10px] font-mono font-bold text-[#111111]/60 uppercase">AUDIT TRAIL</span>
+                <span id="checkpointStatusBadge" class="text-[9px] font-bold text-[#111111]/60 uppercase">AUDIT TRAIL</span>
               </div>
 
               <!-- Live Active Status Callout -->
-              <div id="checkpointActiveStatus" class="p-3 bg-[#f9fafb] border-2 border-[#111111] shadow-[2px_2px_0px_#111111] flex items-center justify-between">
+              <div id="checkpointActiveStatus" class="p-2.5 bg-[#f9fafb] border-2 border-[#111111] shadow-[2px_2px_0px_#111111] flex items-center justify-between text-xs">
                 <div class="flex items-center gap-2">
                   <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span class="text-xs font-mono font-bold uppercase text-[#111111]">CURRENT STAGE:</span>
-                  <span id="currentStageText" class="text-xs font-black uppercase text-[#E11D2E]">En Route Scene</span>
+                  <span class="font-bold uppercase text-[#111111]">STAGE:</span>
+                  <span id="currentStageText" class="font-black uppercase text-[#E11D2E]">En Route Scene</span>
                 </div>
-                <span id="currentStageTime" class="text-[10px] font-mono text-[#111111]/60 font-bold">READY</span>
+                <span id="currentStageTime" class="text-[10px] text-[#111111]/60 font-bold">READY</span>
               </div>
 
-              <div class="grid grid-cols-2 gap-2.5" id="checkpointButtonsGrid">
-                <button id="btnStageArrived" onclick="logIncidentStage('Arrived at Location', this)" class="btn-secondary py-2.5 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition">
-                  <span class="material-symbols-outlined text-sm hidden" id="iconStageArrived">check_circle</span>
+              <div class="grid grid-cols-2 gap-2" id="checkpointButtonsGrid">
+                <button id="btnStageArrived" onclick="logIncidentStage('Arrived at Location', this)" class="btn-secondary py-2 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition">
+                  <span class="material-symbols-outlined text-xs hidden" id="iconStageArrived">check_circle</span>
                   <span>Arrived Scene</span>
                 </button>
-                <button id="btnStageContact" onclick="logIncidentStage('Patient Contact Established', this)" class="btn-secondary py-2.5 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition">
-                  <span class="material-symbols-outlined text-sm hidden" id="iconStageContact">check_circle</span>
+                <button id="btnStageContact" onclick="logIncidentStage('Patient Contact Established', this)" class="btn-secondary py-2 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition">
+                  <span class="material-symbols-outlined text-xs hidden" id="iconStageContact">check_circle</span>
                   <span>Contact Made</span>
                 </button>
-                <button id="btnStageTransport" onclick="logIncidentStage('Patient Boarded and Transporting', this)" class="btn-secondary py-2.5 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition">
-                  <span class="material-symbols-outlined text-sm hidden" id="iconStageTransport">check_circle</span>
+                <button id="btnStageTransport" onclick="logIncidentStage('Patient Boarded and Transporting', this)" class="btn-secondary py-2 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition">
+                  <span class="material-symbols-outlined text-xs hidden" id="iconStageTransport">check_circle</span>
                   <span>Transporting</span>
                 </button>
-                <button id="btnStageHandled" onclick="logIncidentStage('Incident Successfully Handled & Completed', this)" class="btn-primary py-2.5 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition shadow-[2px_2px_0px_#111111]">
-                  <span class="material-symbols-outlined text-sm hidden" id="iconStageHandled">task_alt</span>
+                <button id="btnStageHandled" onclick="logIncidentStage('Incident Successfully Handled & Completed', this)" class="btn-primary py-2 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition shadow-[2px_2px_0px_#111111]">
+                  <span class="material-symbols-outlined text-xs hidden" id="iconStageHandled">task_alt</span>
                   <span>Handled Done</span>
                 </button>
               </div>
 
               <!-- Live Mini Checkpoint Audit Feed -->
-              <div class="space-y-2 pt-2 border-t-2 border-[#111111]/15">
-                <div class="flex items-center justify-between text-[10px] font-mono font-bold uppercase text-[#111111]/70">
+              <div class="space-y-1.5 pt-2 border-t-2 border-[#111111]/15">
+                <div class="flex items-center justify-between text-[10px] font-bold uppercase text-[#111111]/70">
                   <span class="flex items-center gap-1">
                     <span class="material-symbols-outlined text-xs">history</span>
-                    <span>Live Incident Audit Trail</span>
+                    <span>Incident Audit Trail</span>
                   </span>
-                  <span id="checkpointCountBadge" class="px-1.5 py-0.5 bg-white border border-[#111111] text-[9px] font-mono">0 RECORDED</span>
+                  <span id="checkpointCountBadge" class="px-1.5 py-0.2 bg-white border border-[#111111] text-[9px]">0 RECORDED</span>
                 </div>
-                <div id="crewCheckpointFeed" class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                  <p class="text-[11px] text-[#111111]/50 font-mono italic p-2.5 border border-dashed border-[#111111]/20 text-center">
-                    Tap any checkpoint button above to log responder status.
+                <div id="crewCheckpointFeed" class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                  <p class="text-[11px] text-[#111111]/50 italic p-2 border border-dashed border-[#111111]/20 text-center">
+                    Tap any checkpoint above to log responder status.
                   </p>
                 </div>
               </div>
             </div>
 
-            <!-- Leaflet Map Container -->
-            <div id="mapWrapper" class="editorial-card p-6 space-y-4">
-              <div class="flex flex-wrap justify-between items-center gap-3 pb-3 border-b-2 border-[#111111]">
-                <div class="flex items-center gap-2">
-                  <span class="material-symbols-outlined text-[#E11D2E]">map</span>
-                  <div>
-                    <h3 class="font-black text-sm uppercase text-[#111111] leading-tight">Patient Live Emergency GPS Location</h3>
-                    <p id="mapTelemetrySubtext" class="text-[10px] font-mono text-[#111111]/70 font-semibold mt-0.5">Real-time incident coordinates &amp; tactical scene routing</p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span id="mapStatusBadge" class="px-2 py-0.5 border border-[#111111] bg-gray-50 text-[10px] font-mono font-bold uppercase text-[#111111]">STANDBY</span>
-                  <a id="gmapsNavBtn" href="" target="_blank" class="btn-primary text-xs px-3.5 py-1.5 uppercase font-mono font-bold tracking-wider flex items-center gap-1.5 shadow-[2px_2px_0px_#111111]">
-                    <span class="material-symbols-outlined text-base">navigation</span>
-                    <span>Google Maps</span>
-                  </a>
-                </div>
-              </div>
-              <div id="leafletMapContainer" class="w-full h-80 border-2 border-[#111111] overflow-hidden relative" style="z-index: 10;"></div>
-            </div>
-
-            <!-- Recommended Nearby Trauma Centers -->
-            <div id="hospitalWrapper" class="hidden editorial-card p-6 space-y-4">
-              <div class="flex items-center justify-between pb-3 border-b-2 border-[#111111]">
-                <h3 class="font-black text-sm uppercase text-[#111111] flex items-center gap-2">
-                  <span class="material-symbols-outlined text-[#E11D2E]">local_hospital</span>
-                  <span>Recommended Nearby Trauma Centers</span>
+            <!-- Diagnostic Reports & Clinical History (Collapsible / Compact) -->
+            <div class="editorial-card p-5 space-y-3">
+              <div class="flex items-center justify-between pb-2 border-b-2 border-[#111111]">
+                <h3 class="font-black text-xs uppercase text-[#111111] flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[#111111] text-sm">folder_open</span>
+                  <span>Clinical Records &amp; History</span>
                 </h3>
-                <span class="px-2 py-0.5 border border-[#111111] bg-white text-[#111111] text-[10px] font-mono font-bold uppercase tracking-wider">10KM RADIUS</span>
+                <span id="patReportsBadge" class="px-2 py-0.5 border border-[#111111] bg-white text-[9px] font-mono font-bold uppercase text-[#111111]">0 Files</span>
               </div>
-              <div id="hospitalsList" class="grid sm:grid-cols-1 gap-3"></div>
+              <div id="patReportsList" class="space-y-2"></div>
+              <div id="patHistoryList" class="space-y-2 pt-2 border-t border-[#111111]/10"></div>
             </div>
 
           </div>

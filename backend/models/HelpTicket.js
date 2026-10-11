@@ -22,7 +22,7 @@ const helpTicketSchema = new mongoose.Schema({
   requesterRole: {
     type: String,
     required: true,
-    enum: ['doctor', 'crew', 'patient', 'admin']
+    enum: ['doctor', 'crew', 'patient', 'hospital', 'admin']
   },
   patientQrCodeId: {
     type: String,

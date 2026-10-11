@@ -1,7 +1,15 @@
 /**
- * Two-Way Frontend Synchronization Script (LifeQR)
- * Keeps `website/` and `app/` directories synchronized for ALL shared assets,
- * HTML views, stylesheets, scripts, Tailwind files, and components.
+ * Shared Theme & Brand Asset Copy Utility (LifeQR)
+ * 
+ * ARCHITECTURAL RULE:
+ * App view (`app/`) and Website view (`website/`) share the same backend,
+ * but their interface and UI/UX are intentionally distinct (form factor, layout,
+ * mobile-first components vs desktop web portal).
+ * 
+ * - HTML pages and distinct UI scripts are NEVER synchronized/overwritten.
+ * - NO continuous auto-syncing / file watchers run in the background.
+ * - This script only performs a manual one-time copy of shared design tokens,
+ *   theme stylesheets, and brand assets when explicitly invoked.
  */
 
 const fs = require('fs');
@@ -10,39 +18,20 @@ const path = require('path');
 const websiteDir = path.resolve(__dirname, '../website');
 const appDir = path.resolve(__dirname, '../app');
 
-/**
- * Recursively gets all relative file paths from a directory
- */
-function getAllRelativeFiles(dirPath, baseDir = dirPath) {
-  let results = [];
-  if (!fs.existsSync(dirPath)) return results;
+// Shared theme, design tokens, and brand assets eligible for manual copy:
+const SHARED_THEME_ASSETS = [
+  'css/theme.css',
+  'css/styles.css',
+  'src/input.css',
+  'dist/output.css',
+  'LifeQR.png',
+  'lifeqr_transparent.png',
+  'lifeqr_code_logo.png',
+  'lifeqr_logo_badge.png',
+  'lifeqr_logo_dark.png',
+  'lifeqr_splash_cinematic.jpg'
+];
 
-  const list = fs.readdirSync(dirPath);
-  for (const item of list) {
-    const fullPath = path.join(dirPath, item);
-    const stat = fs.statSync(fullPath);
-    if (stat && stat.isDirectory()) {
-      results = results.concat(getAllRelativeFiles(fullPath, baseDir));
-    } else {
-      const relPath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
-      results.push(relPath);
-    }
-  }
-  return results;
-}
-
-/**
- * Gets master list of all relative file paths across both website/ and app/
- */
-function getCombinedFileList() {
-  const websiteFiles = getAllRelativeFiles(websiteDir);
-  const appFiles = getAllRelativeFiles(appDir);
-  return Array.from(new Set([...websiteFiles, ...appFiles]));
-}
-
-/**
- * Ensures target directory exists for a file path
- */
 function ensureDirExists(filePath) {
   const dirname = path.dirname(filePath);
   if (!fs.existsSync(dirname)) {
@@ -50,39 +39,25 @@ function ensureDirExists(filePath) {
   }
 }
 
-const EXCLUDE_FROM_SYNC = [];
-
-function isExcluded(fileRelative) {
-  if (!fileRelative) return true;
-  const norm = fileRelative.replace(/\\/g, '/').toLowerCase().trim();
-  return EXCLUDE_FROM_SYNC.some(ex => norm === ex.toLowerCase());
-}
-
 /**
- * Copies source file to destination if destination doesn't exist or is older
+ * Copies a single shared theme asset if source is newer than destination
  */
-function syncFile(fileRelative) {
-  if (isExcluded(fileRelative)) {
-    return;
-  }
-
+function copyThemeAsset(fileRelative, options = {}) {
   const pathWebsite = path.join(websiteDir, fileRelative);
   const pathApp = path.join(appDir, fileRelative);
 
   const websiteExists = fs.existsSync(pathWebsite);
   const appExists = fs.existsSync(pathApp);
 
-  if (!websiteExists && !appExists) {
-    return;
-  }
+  if (!websiteExists && !appExists) return;
 
   if (websiteExists && !appExists) {
     ensureDirExists(pathApp);
     try {
       fs.copyFileSync(pathWebsite, pathApp);
-      console.log(`[Frontend Sync] Copied new file: website/${fileRelative} -> app/${fileRelative}`);
-    } catch (err) {
-      console.warn(`[Frontend Sync Warning] Locked/Busy copying website/${fileRelative} -> app/${fileRelative}`);
+      if (!options.silent) console.log(`   ✓ Copied shared asset: website/${fileRelative} -> app/${fileRelative}`);
+    } catch (e) {
+      console.warn(`   ⚠️ Could not copy website/${fileRelative}:`, e.message);
     }
     return;
   }
@@ -91,88 +66,59 @@ function syncFile(fileRelative) {
     ensureDirExists(pathWebsite);
     try {
       fs.copyFileSync(pathApp, pathWebsite);
-      console.log(`[Frontend Sync] Copied new file: app/${fileRelative} -> website/${fileRelative}`);
-    } catch (err) {
-      console.warn(`[Frontend Sync Warning] Locked/Busy copying app/${fileRelative} -> website/${fileRelative}`);
+      if (!options.silent) console.log(`   ✓ Copied shared asset: app/${fileRelative} -> website/${fileRelative}`);
+    } catch (e) {
+      console.warn(`   ⚠️ Could not copy app/${fileRelative}:`, e.message);
     }
     return;
   }
 
   const statWebsite = fs.statSync(pathWebsite);
   const statApp = fs.statSync(pathApp);
-
   const diff = statWebsite.mtimeMs - statApp.mtimeMs;
 
   if (Math.abs(diff) > 100) {
     if (diff > 0) {
-      // website file is newer
       try {
         fs.copyFileSync(pathWebsite, pathApp);
-        console.log(`[Frontend Sync] Updated app/${fileRelative} from website/${fileRelative}`);
-      } catch (err) {
-        console.warn(`[Frontend Sync Warning] Locked/Busy updating website/${fileRelative} -> app/${fileRelative}`);
+        if (!options.silent) console.log(`   ✓ Updated theme asset: app/${fileRelative} from website/${fileRelative}`);
+      } catch (e) {
+        console.warn(`   ⚠️ Could not update app/${fileRelative}:`, e.message);
       }
     } else {
-      // app file is newer
       try {
         fs.copyFileSync(pathApp, pathWebsite);
-        console.log(`[Frontend Sync] Updated website/${fileRelative} from app/${fileRelative}`);
-      } catch (err) {
-        console.warn(`[Frontend Sync Warning] Locked/Busy updating app/${fileRelative} -> website/${fileRelative}`);
+        if (!options.silent) console.log(`   ✓ Updated theme asset: website/${fileRelative} from app/${fileRelative}`);
+      } catch (e) {
+        console.warn(`   ⚠️ Could not update website/${fileRelative}:`, e.message);
       }
     }
   }
 }
 
 /**
- * Runs one-time synchronization for all files
+ * Manual one-time copy of shared theme and style assets (No auto-syncing)
  */
 function syncAll(options = {}) {
-  const silent = options && options.silent;
-  if (!silent) {
-    console.log('🔄 Asset Sync   : Two-way sync verified between website/ and app/');
+  console.log('🎨 Theme & Style Copy: Syncing shared tokens and branding (HTML/UI views preserved independently)...');
+  let count = 0;
+  for (const asset of SHARED_THEME_ASSETS) {
+    copyThemeAsset(asset, options);
+    count++;
   }
-  const allFiles = getCombinedFileList();
-  for (const relFile of allFiles) {
-    syncFile(relFile);
-  }
+  console.log(`   ✓ Done. ${count} shared theme/brand assets verified. App and Website UI/UX layouts remain isolated.`);
 }
 
 /**
- * Starts continuous real-time file watcher
+ * Auto-sync watcher is explicitly disabled per design standard.
  */
-function startWatcher(onChangeCallback) {
-  syncAll({ silent: true });
-  console.log('🔄 Frontend Sync: Active & live watching website/ and app/ for changes');
-
-  const watchOptions = { recursive: true };
-
-  const handleWatchEvent = (sourceDirName, targetDirName, targetBaseDir, filename) => {
-    if (!filename) return;
-    const relFile = filename.replace(/\\/g, '/');
-    syncFile(relFile);
-    if (typeof onChangeCallback === 'function') {
-      onChangeCallback(relFile);
-    }
-  };
-
-  fs.watch(websiteDir, watchOptions, (eventType, filename) => {
-    handleWatchEvent('website', 'app', appDir, filename);
-  });
-
-  fs.watch(appDir, watchOptions, (eventType, filename) => {
-    handleWatchEvent('app', 'website', websiteDir, filename);
-  });
+function startWatcher() {
+  console.log('ℹ️ Continuous auto-sync is disabled. App view and Website view maintain independent UI/UX and feature layouts.');
 }
 
 // Execute if run directly
 if (require.main === module) {
-  const isWatch = process.argv.includes('--watch');
-  if (isWatch) {
-    startWatcher();
-  } else {
-    syncAll();
-  }
+  syncAll();
 }
 
-module.exports = { syncAll, startWatcher, syncFile };
+module.exports = { syncAll, startWatcher, copyThemeAsset, SHARED_THEME_ASSETS };

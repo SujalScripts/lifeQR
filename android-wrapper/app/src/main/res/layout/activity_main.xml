@@ -1,39 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.swiperefreshlayout.widget.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/swipeRefresh"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <RelativeLayout
+    <WebView
+        android:id="@+id/webView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent" />
 
-        <WebView
-            android:id="@+id/webView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+    <RelativeLayout
+        android:id="@+id/splashContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#000000"
+        android:visibility="visible">
 
-        <LinearLayout
-            android:id="@+id/splashContainer"
+        <!-- 1080x1920 9:16 Cinematic LifeQR Logo Studio Reference (Locked 50% x 50%) -->
+        <ImageView
+            android:id="@+id/splashCinematicView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#090d16"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:visibility="gone">
+            android:scaleType="centerCrop"
+            android:src="@drawable/lifeqr_splash_cinematic"
+            android:contentDescription="LifeQR Cinematic Intro" />
 
-            <ImageView
-                android:layout_width="120dp"
-                android:layout_height="120dp"
-                android:src="@mipmap/ic_launcher" />
+        <!-- Soft Illumination Overlay Layer -->
+        <View
+            android:id="@+id/splashLightOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#FFFFFF"
+            android:visibility="gone" />
 
-            <ProgressBar
-                style="?android:attr/progressBarStyleSmall"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp" />
-
-        </LinearLayout>
     </RelativeLayout>
 
-</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+</RelativeLayout>

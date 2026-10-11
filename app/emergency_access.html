@@ -46,8 +46,38 @@
     }
     body {
       font-family: 'Archivo', system-ui, -apple-system, sans-serif;
-      background: #ffffff;
+      background: #f1f5f9;
       color: #111111;
+    }
+    .mobile-emergency-shell {
+      background: #ffffff;
+    }
+    [data-theme="dark"] body {
+      background: #000000 !important;
+      color: #ffffff !important;
+    }
+    [data-theme="dark"] .mobile-emergency-shell {
+      background: #111111 !important;
+      border-color: #262626 !important;
+    }
+    .mobile-emergency-shell {
+      overflow-x: hidden;
+    }
+    .mobile-emergency-shell .sm\:flex-row {
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+    .mobile-emergency-shell .sm\:items-start {
+      align-items: center !important;
+    }
+    .mobile-emergency-shell .sm\:text-left {
+      text-align: center !important;
+    }
+    .mobile-emergency-shell .sm\:justify-start {
+      justify-content: center !important;
+    }
+    .mobile-emergency-shell .grid.sm\:grid-cols-2 {
+      grid-template-columns: 1fr !important;
     }
     .font-black {
       font-family: 'Archivo Black', 'Archivo', sans-serif;
@@ -163,89 +193,98 @@
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between">
+<body class="min-h-screen bg-[#f1f5f9] flex flex-col items-center">
 
-  <!-- Telemetry Bar -->
-  <div class="bg-[#111111] text-white py-2.5 px-6 sm:px-10 text-xs font-mono no-print">
-    <div class="max-w-4xl mx-auto flex items-center justify-between gap-4 flex-wrap text-[11px]">
-      <div class="flex items-center gap-2.5">
-        <span class="live-dot"></span>
-        <span class="uppercase tracking-widest text-white font-bold">EMERGENCY ACCESS PASS &bull; ZERO-LOGIN TRIAGE ACTIVE</span>
-      </div>
-      <div class="flex items-center gap-4 text-white/60">
-        <span>AES-256 GCM SECURED</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Header Navigation -->
-  <header class="sticky top-0 z-40 px-6 sm:px-10 py-4 rule-b bg-white no-print">
-    <div class="max-w-4xl mx-auto flex items-center justify-between gap-4">
-      <a href="landingpage.html" class="flex items-center gap-2 group">
-        <span class="font-black text-2xl tracking-tight text-[#111111]">LIFEQR</span>
-        <span class="w-2.5 h-2.5 rounded-full bg-[#E11D2E] group-hover:scale-125 transition-transform"></span>
-      </a>
-
-      <!-- Language Selector -->
-      <div class="flex items-center gap-2">
-        <span class="material-symbols-outlined text-base text-[#111111]">language</span>
-        <select id="languageSelector" class="px-3 py-1.5 bg-white border-2 border-[#111111] text-[#111111] font-mono text-xs font-bold uppercase focus:outline-none focus:border-[#E11D2E] cursor-pointer">
-          <option value="en">EN &bull; English</option>
-          <option value="hi">HI &bull; हिन्दी</option>
-          <option value="kn">KN &bull; ಕನ್ನಡ</option>
-          <option value="ta">TA &bull; தமிழ்</option>
-          <option value="es">ES &bull; Español</option>
-        </select>
-      </div>
-    </div>
-  </header>
-
-  <!-- Main Content -->
-  <main class="flex-1 px-4 sm:px-6 py-8 sm:py-12 max-w-4xl mx-auto w-full">
+  <!-- Mobile-Native Emergency Pass Shell -->
+  <div class="mobile-emergency-shell max-w-[440px] w-full mx-auto min-h-screen bg-white sm:my-6 sm:border-2 sm:border-[#111111] sm:shadow-[8px_8px_0px_#111111] flex flex-col justify-between">
     
-    <!-- Title & Status Header -->
-    <div class="mb-8 text-center sm:text-left flex flex-col sm:flex-row sm:items-end justify-between gap-4 no-print">
-      <div>
-        <div class="inline-flex items-center gap-2 px-3 py-1 border-2 border-[#E11D2E] bg-red-50 text-[11px] font-mono font-bold uppercase tracking-widest text-[#E11D2E] mb-3">
-          <span class="live-dot"></span>
-          <span>CRITICAL PATIENT PASSPORT</span>
+    <div>
+      <!-- Telemetry Bar -->
+      <div class="bg-[#111111] text-white py-2 px-4 text-xs font-mono no-print">
+        <div class="flex items-center justify-between text-[11px]">
+          <div class="flex items-center gap-2">
+            <span class="live-dot"></span>
+            <span class="uppercase tracking-wider font-bold">EMERGENCY ACCESS PASS</span>
+          </div>
+          <span class="text-white/60 text-[10px]">AES-256</span>
         </div>
-        <h1 id="mainTitle" class="font-black text-3xl sm:text-4xl text-[#111111] tracking-tight uppercase">Emergency Medical Profile</h1>
-        <p id="mainSubtitle" class="text-xs sm:text-sm font-medium text-[#111111]/70 font-sans mt-1">Verify vital clinical parameters and trigger 1-tap emergency contacts below</p>
       </div>
 
-      <button onclick="window.print()" class="btn-secondary text-xs px-4 py-2 uppercase font-mono tracking-wider self-center sm:self-end">
+      <!-- Header Navigation -->
+      <header class="sticky top-0 z-40 px-4 py-3 rule-b bg-white no-print flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="font-black text-xl tracking-tight text-[#111111]">LIFEQR</span>
+          <span class="px-1.5 py-0.5 bg-[#E11D2E] text-white text-[9px] font-mono font-bold uppercase tracking-wider">PASS</span>
+        </div>
+
+        <!-- Language Selector -->
+        <div class="flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-sm text-[#111111]">language</span>
+          <select id="languageSelector" class="px-2 py-1 bg-white border-2 border-[#111111] text-[#111111] font-mono text-[11px] font-bold uppercase focus:outline-none focus:border-[#E11D2E] cursor-pointer">
+            <option value="en">EN &bull; English</option>
+            <option value="hi">HI &bull; हिन्दी</option>
+            <option value="kn">KN &bull; ಕನ್ನಡ</option>
+            <option value="ta">TA &bull; தமிழ்</option>
+            <option value="es">ES &bull; Español</option>
+          </select>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="w-full px-3 sm:px-4 py-4">
+        
+        <!-- Title & Status Header -->
+        <div class="mb-4 text-left no-print">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 border-2 border-[#E11D2E] bg-red-50 text-[10px] font-mono font-bold uppercase tracking-wider text-[#E11D2E] mb-2">
+            <span class="live-dot"></span>
+            <span>CRITICAL PATIENT PASSPORT</span>
+          </div>
+          <h1 id="mainTitle" class="font-black text-2xl text-[#111111] tracking-tight uppercase">Emergency Medical Profile</h1>
+          <p id="mainSubtitle" class="text-xs font-medium text-[#111111]/70 font-sans mt-0.5">Verify vital clinical parameters & trigger 1-tap contacts</p>
+        </div>
+
+        <!-- Details Card Container (Rendered dynamically by emergency-access.js) -->
+        <div class="editorial-card p-4 sm:p-5" id="emergencyDetailsCard">
+          <!-- Loading Skeleton -->
+          <div class="space-y-4 animate-pulse">
+            <div class="flex items-center gap-3">
+              <div class="w-14 h-14 bg-gray-200 border-2 border-[#111111]"></div>
+              <div class="flex-1 space-y-2">
+                <div class="h-5 w-1/2 bg-gray-200"></div>
+                <div class="h-3 w-3/4 bg-gray-100"></div>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="h-16 bg-gray-100 border-2 border-gray-200"></div>
+              <div class="h-16 bg-gray-100 border-2 border-gray-200"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- First Responder Note -->
+        <div class="mt-4 p-3.5 border-2 border-[#111111] bg-[#f9fafb] text-[11px] text-[#111111] flex items-start gap-2.5 no-print">
+          <span class="material-symbols-outlined text-[#E11D2E] text-base flex-shrink-0 mt-0.5">info</span>
+          <p class="leading-relaxed font-sans font-medium">
+            <strong class="font-bold text-[#111111]">First Responder Protocol:</strong> All medical details displayed are patient-authorized for emergency care. Direct emergency phone triggers do not require authentication or application installs.
+          </p>
+        </div>
+
+      </main>
+    </div>
+
+    <!-- Bottom Actions / Sharing Bar -->
+    <div class="p-3 border-t-2 border-[#111111] bg-[#f9fafb] flex gap-2 no-print">
+      <button onclick="window.print()" class="btn-secondary flex-1 text-[11px] py-2 uppercase font-mono tracking-wider flex items-center justify-center gap-1">
         <span class="material-symbols-outlined text-sm">print</span>
         <span>Print Pass</span>
       </button>
+      <button onclick="if(navigator.clipboard){navigator.clipboard.writeText(window.location.href);if(typeof showToast==='function')showToast('Emergency link copied!','success');else alert('Link copied!');}" class="btn-secondary flex-1 text-[11px] py-2 uppercase font-mono tracking-wider flex items-center justify-center gap-1">
+        <span class="material-symbols-outlined text-sm">share</span>
+        <span>Share Link</span>
+      </button>
     </div>
 
-    <!-- Details Card Container (Rendered dynamically by emergency-access.js) -->
-    <div class="editorial-card p-6 sm:p-8" id="emergencyDetailsCard">
-      <!-- Loading Skeleton -->
-      <div class="space-y-6 animate-pulse">
-        <div class="flex items-center gap-4">
-          <div class="w-16 h-16 bg-gray-200 border-2 border-[#111111]"></div>
-          <div class="flex-1 space-y-2">
-            <div class="h-6 w-1/3 bg-gray-200"></div>
-            <div class="h-4 w-1/2 bg-gray-100"></div>
-          </div>
-        </div>
-        <div class="grid grid-cols-3 gap-3">
-          <div class="h-20 bg-gray-100 border-2 border-gray-200"></div>
-          <div class="h-20 bg-gray-100 border-2 border-gray-200"></div>
-          <div class="h-20 bg-gray-100 border-2 border-gray-200"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- First Responder Note -->
-    <div class="mt-8 p-5 border-2 border-[#111111] bg-[#f9fafb] text-xs text-[#111111] flex items-start gap-3 no-print">
-      <span class="material-symbols-outlined text-[#E11D2E] text-xl flex-shrink-0 mt-0.5">info</span>
-      <p class="leading-relaxed font-sans font-medium">
-        <strong class="font-bold text-[#111111]">First Responder Protocol:</strong> All medical details displayed are patient-authorized for emergency care. Direct emergency phone triggers do not require authentication or application installs.
-      </p>
-    </div>
+  </div><!-- /.mobile-emergency-shell -->
 
   <!-- Paramedic / Ambulance Crew Unlock Modal -->
   <div id="crewUnlockModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto no-print">

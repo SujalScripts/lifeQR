@@ -267,6 +267,15 @@
         [data-theme="dark"] .border-\[\#111111\] {
             border-color: #262626 !important;
         }
+        [data-theme="dark"] #activeSessionBanner {
+            background-color: #1c1917 !important;
+            border-color: #44403c !important;
+            color: #ffffff !important;
+            box-shadow: 4px 4px 0px #44403c !important;
+        }
+        [data-theme="dark"] #activeSessionBanner p {
+            color: #cbd5e1 !important;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between">
@@ -313,6 +322,30 @@
             </p>
         </div>
 
+        <!-- Active Session Detected Banner (Non-blocking) -->
+        <div id="activeSessionBanner" class="hidden mb-8 p-4 sm:p-5 border-2 border-[#111111] bg-amber-50 text-[#111111] flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-[4px_4px_0px_#111111]">
+            <div class="flex items-start sm:items-center gap-3">
+                <span class="material-symbols-outlined text-amber-600 text-2xl shrink-0 mt-0.5 sm:mt-0">account_circle</span>
+                <div>
+                    <div class="font-mono text-xs font-bold uppercase tracking-wider text-[#111111]">
+                        ACTIVE SESSION DETECTED: Logged in as <span id="sessionUserName" class="text-[#E11D2E] underline">User</span> (<span id="sessionUserRole" class="font-black">PATIENT</span>)
+                    </div>
+                    <p class="text-[11px] text-[#111111]/75 mt-0.5">
+                        You can create a new emergency badge below, or jump directly to your existing dashboard.
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 font-mono text-xs shrink-0 flex-wrap">
+                <a id="sessionDashboardLink" href="patient_dashboard.html" class="btn-primary text-[11px] px-3.5 py-2 uppercase tracking-wider">
+                    <span>Go to Dashboard</span>
+                    <span class="material-symbols-outlined text-xs">arrow_forward</span>
+                </a>
+                <button type="button" onclick="handleLogoutAndStayOnSignup()" class="btn-secondary text-[11px] px-3 py-2 uppercase tracking-wider text-rose-600 hover:text-white hover:bg-rose-600 hover:border-rose-600">
+                    <span>Sign Out</span>
+                </button>
+            </div>
+        </div>
+
         <!-- Editorial Main Card -->
         <div class="editorial-card p-6 sm:p-10 relative">
             
@@ -321,7 +354,7 @@
                 <div class="text-[11px] font-mono font-bold uppercase tracking-wider text-[#111111] mb-3">
                     SELECT ACCOUNT TYPE
                 </div>
-                <div class="grid grid-cols-3 gap-3 sm:gap-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                     <button type="button" onclick="selectRole('patient')" id="role-patient" class="role-btn p-4 text-center active-role">
                         <span class="material-symbols-outlined text-2xl block mb-1 role-icon text-[#E11D2E]">person</span>
                         <span class="text-xs sm:text-sm font-black uppercase block tracking-tight">Patient</span>
@@ -336,8 +369,14 @@
 
                     <button type="button" onclick="selectRole('crew')" id="role-crew" class="role-btn p-4 text-center">
                         <span class="material-symbols-outlined text-2xl block mb-1 role-icon text-[#111111]">emergency</span>
-                        <span class="text-xs sm:text-sm font-black uppercase block tracking-tight">EMS Crew</span>
+                        <span class="text-xs sm:text-sm font-black uppercase block tracking-tight">Ambulance Crew</span>
                         <span class="text-[10px] font-mono uppercase tracking-wider block mt-0.5 role-sub text-[#111111]/60 font-bold">Paramedic HUD</span>
+                    </button>
+
+                    <button type="button" onclick="selectRole('hospital')" id="role-hospital" class="role-btn p-4 text-center">
+                        <span class="material-symbols-outlined text-2xl block mb-1 role-icon text-[#111111]">local_hospital</span>
+                        <span class="text-xs sm:text-sm font-black uppercase block tracking-tight">Hospital Staff</span>
+                        <span class="text-[10px] font-mono uppercase tracking-wider block mt-0.5 role-sub text-[#111111]/60 font-bold">Clinical Ops Hub</span>
                     </button>
                 </div>
             </div>
@@ -541,6 +580,43 @@
                     </div>
                 </div>
 
+                <!-- Section: Hospital Staff-specific Fields -->
+                <div id="hospitalFields" class="space-y-4 hidden pt-2">
+                    <div class="flex items-center gap-2 pb-2 border-b-2 border-[#111111]">
+                        <span class="material-symbols-outlined text-base text-[#E11D2E]">local_hospital</span>
+                        <h3 class="font-black text-xs uppercase tracking-wider font-mono text-[#111111]">02 / Hospital &amp; Clinical Staff Credentials</h3>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-[#111111] mb-1.5 font-mono">Affiliated Hospital / Medical Facility Name *</label>
+                        <input type="text" id="hospitalName" name="hospitalName" placeholder="e.g., Metro City Central Hospital" class="editorial-input">
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#111111] mb-1.5 font-mono">Department / Clinical Bay *</label>
+                            <select id="department" name="department" class="editorial-input cursor-pointer font-bold">
+                                <option value="">Select Clinical Department</option>
+                                <option value="Emergency Department &amp; Trauma Reception (ER)">Emergency Department &amp; Trauma Reception (ER)</option>
+                                <option value="Intensive Care Unit (ICU)">Intensive Care Unit (ICU)</option>
+                                <option value="Inpatient Ward Management">Inpatient Ward Management</option>
+                                <option value="Outpatient &amp; Triage Registration Desk">Outpatient &amp; Triage Registration Desk</option>
+                                <option value="Blood Bank &amp; Transfusion Vault">Blood Bank &amp; Transfusion Vault</option>
+                                <option value="Hospital Operations &amp; Bed Control">Hospital Operations &amp; Bed Control</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#111111] mb-1.5 font-mono">Staff Designation / Title *</label>
+                            <input type="text" id="staffRole" name="staffRole" placeholder="e.g., ER Receptionist / Inpatient Coordinator / Charge Nurse" class="editorial-input">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-[#111111] mb-1.5 font-mono">Hospital Staff / Employee ID</label>
+                        <input type="text" id="staffId" name="staffId" placeholder="e.g., HOSP-EMP-9021" class="editorial-input font-mono">
+                    </div>
+                </div>
+
                 <!-- Submit Button -->
                 <div class="pt-4 border-t-2 border-[#111111]">
                     <button type="submit" id="submitBtn" class="btn-primary w-full py-4 text-xs font-mono uppercase tracking-wider font-bold">
@@ -574,7 +650,53 @@
 
     <!-- Logic Script -->
     <script>
-        checkAuthPagesAccess();
+        // Check if an existing session is active without force-redirecting away
+        // This ensures clicking "Create Badge" or navigating to signup always loads the registration form
+        async function checkExistingSession() {
+            try {
+                if (typeof window.verifyAuth === 'function') {
+                    const user = await window.verifyAuth();
+                    if (user) {
+                        const banner = document.getElementById('activeSessionBanner');
+                        if (banner) {
+                            banner.classList.remove('hidden');
+                            const nameEl = document.getElementById('sessionUserName');
+                            const roleEl = document.getElementById('sessionUserRole');
+                            const linkEl = document.getElementById('sessionDashboardLink');
+                            if (nameEl) nameEl.textContent = user.name || 'User';
+                            if (roleEl) roleEl.textContent = (user.role || 'patient').toUpperCase();
+                            if (linkEl) {
+                                if (user.role === 'doctor') linkEl.href = 'doctor_dashboard.html';
+                                else if (user.role === 'crew') linkEl.href = 'CrewAmbulance_dashboard.html';
+                                else if (user.role === 'hospital') linkEl.href = 'hospital_dashboard.html';
+                                else if (user.role === 'admin') linkEl.href = 'admin_dashboard.html';
+                                else linkEl.href = 'patient_dashboard.html';
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('Session check error on signup page:', err);
+            }
+        }
+        checkExistingSession();
+
+        async function handleLogoutAndStayOnSignup() {
+            try {
+                const apiBase = typeof getApiBase === 'function' ? getApiBase() : '/api/v1';
+                await fetch(`${apiBase}/auth/logout`, { method: 'POST', credentials: 'include' });
+            } catch (err) {
+                console.error('Logout error:', err);
+            }
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userId');
+            const banner = document.getElementById('activeSessionBanner');
+            if (banner) banner.classList.add('hidden');
+            if (typeof showToast === 'function') {
+                showToast('Signed out of previous session. You can now create a fresh badge.', 'info');
+            }
+        }
 
         let currentRole = 'patient';
 
@@ -599,6 +721,7 @@
             document.getElementById('patientFields').classList.toggle('hidden', role !== 'patient');
             document.getElementById('doctorFields').classList.toggle('hidden', role !== 'doctor');
             document.getElementById('crewFields').classList.toggle('hidden', role !== 'crew');
+            document.getElementById('hospitalFields').classList.toggle('hidden', role !== 'hospital');
 
             const ice1Name = document.querySelector('input[name="emergencyContactName1"]');
             const ice1Phone = document.querySelector('input[name="emergencyContactPhone1"]');
@@ -740,6 +863,16 @@
                         contacts.push({ name: name2, phone: phone2, relationship: rel2 || 'Secondary Contact' });
                     }
                     data.emergencyContacts = contacts;
+                } else if (currentRole === 'hospital') {
+                    const hName = (e.target.hospitalName?.value || '').trim();
+                    const dept = (e.target.department?.value || '').trim();
+                    const sRole = (e.target.staffRole?.value || '').trim();
+                    if (!hName || !dept || !sRole) {
+                        showToast('Hospital Facility Name, Department, and Staff Role are required.', 'error');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = `<span>Create Free Account</span><span class="material-symbols-outlined text-sm">arrow_forward</span>`;
+                        return;
+                    }
                 }
 
                 if (data.phone && data.phone.trim() === '+91') {
@@ -786,6 +919,8 @@
                     targetDashboard = 'doctor_dashboard.html';
                 } else if (userRole === 'crew') {
                     targetDashboard = 'CrewAmbulance_dashboard.html';
+                } else if (userRole === 'hospital') {
+                    targetDashboard = 'hospital_dashboard.html';
                 } else if (userRole === 'admin') {
                     targetDashboard = 'admin_dashboard.html';
                 }

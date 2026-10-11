@@ -1,6 +1,8 @@
 const express = require('express');
 const User = require('../../models/User');
 const PatientProfile = require('../../models/PatientProfile');
+const CrewProfile = require('../../models/CrewProfile');
+const AmbulanceCrew = require('../../models/AmbulanceCrew');
 const { authenticateToken } = require('../../middleware/auth');
 const { logEvent } = require('../../services/securityLogger');
 const { sendEmail } = require('../../services/emailService');
@@ -177,6 +179,329 @@ router.post(['/acknowledge', '/acknowledge/:qrCodeId/:sosId'], authenticateToken
   } catch (error) {
     console.error('Error acknowledging SOS alert:', error);
     res.status(500).json({ error: 'Failed to acknowledge SOS alert' });
+  }
+});
+
+// Get active unresolved SOS alerts (for Crew / Doctor / Admin radar)
+router.get('/active', authenticateToken, async (req, res) => {
+  try {
+    if (!['crew', 'doctor', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Access denied: Responder role required' });
+    }
+
+    const profiles = await PatientProfile.find({
+      'sosAlerts.status': { $in: ['sent', 'acknowledged', 'dispatched'] }
+    }).populate('userId', 'name phone email');
+
+    const activeAlerts = [];
+    profiles.forEach(profile => {
+      if (profile.sosAlerts && profile.sosAlerts.length > 0) {
+        profile.sosAlerts.forEach(alert => {
+          if (['sent', 'acknowledged', 'dispatched'].includes(alert.status)) {
+            activeAlerts.push({
+              sosId: alert._id,
+              patientId: profile.userId?._id || profile.userId,
+              name: profile.name || profile.userId?.name || 'Emergency Patient',
+              age: profile.age,
+              bloodGroup: profile.bloodGroup,
+              allergies: profile.allergies,
+              medications: profile.medications,
+              emergencyContacts: profile.emergencyContacts,
+              qrCodeId: profile.qrCodeId,
+              location: alert.location,
+              message: alert.message,
+              status: alert.status,
+              acknowledgedBy: alert.acknowledgedBy,
+              createdAt: alert.createdAt
+            });
+          }
+        });
+      }
+    });
+
+    activeAlerts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json({ success: true, alerts: activeAlerts });
+  } catch (error) {
+    console.error('Error fetching active SOS alerts:', error);
+    res.status(500).json({ error: 'Failed to fetch active SOS alerts' });
+  }
+});
+
+// Get crew duty status
+router.get('/crew/duty-status', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'crew') {
+      return res.status(403).json({ error: 'Only ambulance crew can query duty status' });
+    }
+
+    const crewProfile = await CrewProfile.findOne({ userId: req.user.userId });
+    const status = crewProfile?.status || 'on_duty';
+    const isOffDuty = status === 'off_duty';
+
+    res.json({
+      success: true,
+      status: isOffDuty ? 'off_duty' : (status === 'dispatched' ? 'dispatched' : 'on_duty'),
+      rawStatus: status,
+      isOffDuty,
+      vehicleNumber: crewProfile?.vehicleNumber || 'MED-UNIT-108',
+      station: crewProfile?.station || 'Central Emergency Station',
+      updatedAt: crewProfile?.updatedAt
+    });
+  } catch (error) {
+    console.error('Error fetching crew duty status:', error);
+    res.status(500).json({ error: 'Failed to fetch crew duty status' });
+  }
+});
+
+// Update crew duty status (Toggle ON-DUTY / OFF-DUTY)
+router.post('/crew/duty-status', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'crew') {
+      return res.status(403).json({ error: 'Only ambulance crew can update duty status' });
+    }
+
+    const { status } = req.body;
+    if (!['on_duty', 'off_duty', 'available'].includes(status)) {
+      return res.status(400).json({ error: 'Status must be on_duty, off_duty, or available' });
+    }
+
+    const targetStatus = status === 'off_duty' ? 'off_duty' : 'on_duty';
+
+    const crewUser = await User.findById(req.user.userId).select('name phone email');
+    let crewProfile = await CrewProfile.findOne({ userId: req.user.userId });
+
+    if (!crewProfile) {
+      crewProfile = await CrewProfile.create({
+        userId: req.user.userId,
+        vehicleNumber: 'KA-01-EQ-9110',
+        crewType: 'ambulance',
+        station: 'Station 12 — Central Trauma Sub-station',
+        organization: 'Metro City Emergency Medical Services (EMS)',
+        status: targetStatus
+      });
+    } else {
+      crewProfile.status = targetStatus;
+      await crewProfile.save();
+    }
+
+    await AmbulanceCrew.findOneAndUpdate(
+      { userId: req.user.userId },
+      { status: targetStatus }
+    ).catch(() => {});
+
+    // Broadcast real-time duty state to all crews and administrative fleet observers
+    const io = req.app.get('io');
+    if (io) {
+      io.to('crew:all').emit('crew-duty-updated', {
+        crewId: req.user.userId,
+        name: crewUser?.name || 'Ambulance Crew Lead',
+        vehicleNumber: crewProfile.vehicleNumber,
+        status: targetStatus,
+        isOffDuty: targetStatus === 'off_duty',
+        timestamp: new Date()
+      });
+      io.to('admin:all').emit('crew-duty-updated', {
+        crewId: req.user.userId,
+        name: crewUser?.name || 'Ambulance Crew Lead',
+        vehicleNumber: crewProfile.vehicleNumber,
+        status: targetStatus,
+        isOffDuty: targetStatus === 'off_duty',
+        timestamp: new Date()
+      });
+    }
+
+    logEvent(targetStatus === 'off_duty' ? 'CREW_OFF_DUTY' : 'CREW_ON_DUTY', {
+      crewId: req.user.userId,
+      vehicleNumber: crewProfile.vehicleNumber,
+      status: targetStatus
+    });
+
+    res.json({
+      success: true,
+      message: targetStatus === 'off_duty' 
+        ? `Unit ${crewProfile.vehicleNumber} is now OFF-DUTY. Alarms muted.` 
+        : `Unit ${crewProfile.vehicleNumber} is now ON-DUTY. Tactical radar active.`,
+      status: targetStatus,
+      isOffDuty: targetStatus === 'off_duty',
+      vehicleNumber: crewProfile.vehicleNumber
+    });
+  } catch (error) {
+    console.error('Error updating crew duty status:', error);
+    res.status(500).json({ error: 'Failed to update crew duty status' });
+  }
+});
+
+// Update ambulance crew live GPS location
+router.post('/crew/location', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'crew') {
+      return res.status(403).json({ error: 'Only ambulance crew can update tactical location' });
+    }
+
+    const { lat, lng } = req.body;
+    if (typeof lat !== 'number' || typeof lng !== 'number') {
+      return res.status(400).json({ error: 'Valid latitude and longitude coordinates are required' });
+    }
+
+    const crewProfile = await CrewProfile.findOneAndUpdate(
+      { userId: req.user.userId },
+      { currentLocation: { lat, lng, updatedAt: new Date() } },
+      { new: true, upsert: true }
+    );
+
+    await AmbulanceCrew.findOneAndUpdate(
+      { userId: req.user.userId },
+      { currentLocation: { lat, lng, updatedAt: new Date() } }
+    ).catch(() => {});
+
+    res.json({
+      success: true,
+      currentLocation: crewProfile.currentLocation
+    });
+  } catch (error) {
+    console.error('Error updating crew location:', error);
+    res.status(500).json({ error: 'Failed to update crew location' });
+  }
+});
+
+// Accept emergency SOS dispatch (by Ambulance Crew)
+router.post('/accept', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'crew') {
+      return res.status(403).json({ error: 'Only ambulance crew members can accept emergency dispatch' });
+    }
+
+    const { sosId, etaMinutes, crewLocation } = req.body;
+    if (!sosId) {
+      return res.status(400).json({ error: 'SOS Alert ID is required' });
+    }
+
+    const crewUser = await User.findById(req.user.userId).select('name phone email role');
+    if (!crewUser) {
+      return res.status(404).json({ error: 'Ambulance crew user record not found' });
+    }
+
+    const crewProfile = await CrewProfile.findOne({ userId: req.user.userId });
+    if (crewProfile && crewProfile.status === 'off_duty') {
+      return res.status(400).json({
+        error: `Unit ${crewProfile.vehicleNumber} is currently OFF-DUTY. Please switch to ON-DUTY before accepting emergency dispatch.`
+      });
+    }
+
+    const vehicleNumber = crewProfile?.vehicleNumber || 'MED-UNIT-108';
+    const station = crewProfile?.station || 'Central Emergency Station';
+    const organization = crewProfile?.organization || 'LifeQR Emergency Fleet';
+    const crewPhone = crewUser.phone || '+91 98201 10800';
+
+    const profile = await PatientProfile.findOne({ 'sosAlerts._id': sosId });
+    if (!profile) {
+      return res.status(404).json({ error: 'Active SOS alert not found' });
+    }
+
+    const alert = profile.sosAlerts.id(sosId);
+    if (!alert) {
+      return res.status(404).json({ error: 'SOS alert event not found' });
+    }
+
+    alert.status = 'dispatched';
+    alert.acknowledgedBy = {
+      userId: crewUser._id,
+      name: crewUser.name,
+      phone: crewPhone,
+      vehicleNumber: vehicleNumber,
+      station: station,
+      timestamp: new Date()
+    };
+
+    if (crewProfile) {
+      crewProfile.status = 'dispatched';
+      if (crewLocation && typeof crewLocation.lat === 'number' && typeof crewLocation.lng === 'number') {
+        crewProfile.currentLocation = {
+          lat: crewLocation.lat,
+          lng: crewLocation.lng,
+          updatedAt: new Date()
+        };
+      }
+      await crewProfile.save();
+    }
+
+    profile.activities.unshift({
+      type: 'Ambulance Dispatched',
+      title: 'Ambulance Unit En Route',
+      description: `Unit ${vehicleNumber} crewed by ${crewUser.name} (${crewPhone}) accepted dispatch and is en route.`,
+      metadata: {
+        crewName: crewUser.name,
+        crewPhone: crewPhone,
+        vehicleNumber: vehicleNumber,
+        station: station,
+        etaMinutes: etaMinutes || 4
+      },
+      timestamp: new Date()
+    });
+
+    await profile.save();
+
+    const calculatedEta = etaMinutes || 4;
+
+    const dispatchPayload = {
+      sosId,
+      status: 'dispatched',
+      crewName: crewUser.name,
+      crewPhone: crewPhone,
+      vehicleNumber: vehicleNumber,
+      station: station,
+      organization: organization,
+      etaMinutes: calculatedEta,
+      patientId: profile.userId,
+      patientName: profile.name,
+      location: alert.location,
+      timestamp: new Date()
+    };
+
+    const io = req.app.get('io');
+    if (io) {
+      // 1. Directly notify the patient in room patient:<userId>
+      io.to(`patient:${profile.userId}`).emit('sos-dispatch-accepted', dispatchPayload);
+
+      io.to(`patient:${profile.userId}`).emit('sos-acknowledged', {
+        sosId,
+        responderName: crewUser.name,
+        responderRole: 'Ambulance Crew Lead',
+        crewPhone: crewPhone,
+        vehicleNumber: vehicleNumber,
+        station: station
+      });
+
+      // 2. Broadcast to all crew members that this SOS is claimed
+      io.to('crew:all').emit('sos-dispatch-accepted', dispatchPayload);
+      io.to('crew:all').emit('sos-claimed', {
+        sosId,
+        claimedBy: {
+          name: crewUser.name,
+          phone: crewPhone,
+          vehicleNumber: vehicleNumber
+        }
+      });
+    }
+
+    logEvent('SOS_DISPATCH_ACCEPTED', {
+      sosId,
+      crewId: crewUser._id,
+      crewName: crewUser.name,
+      vehicleNumber,
+      patientId: profile.userId
+    });
+
+    res.json({
+      success: true,
+      message: `Emergency dispatch accepted. Unit ${vehicleNumber} dispatched.`,
+      dispatch: dispatchPayload,
+      alert
+    });
+  } catch (error) {
+    console.error('Error accepting emergency dispatch:', error);
+    res.status(500).json({ error: 'Failed to accept emergency dispatch' });
   }
 });
 

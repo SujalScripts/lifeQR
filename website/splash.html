@@ -5,223 +5,846 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
     <link rel="manifest" href="/manifest.json">
-    <link rel="icon" href="LifeQR.png" type="image/png">
+    <link rel="icon" href="lifeqr_transparent.png" type="image/png">
+    <title>LifeQR — Initializing Emergency Network</title>
 
-    <title>LifeQR — Initializing Secure Network</title>
-
-    <!-- Google Fonts & Material Symbols -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Black&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,200..700,0..1,-50..200" rel="stylesheet">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="styles.css">
-    <script src="api-utils.js"></script>
-    <script src="js/theme.js"></script>
-
-    <script>
-      (function(){
-        try {
-          var m = localStorage.getItem('lifeqr_theme_manual');
-          var sys = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-          document.documentElement.setAttribute('data-theme', m || sys);
-        } catch(e){}
-      })();
-    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&family=Archivo+Black&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-        body {
-            font-family: 'Archivo', system-ui, -apple-system, sans-serif;
-            background: #ffffff;
-            color: #111111;
-        }
-        .font-black {
-            font-family: 'Archivo Black', 'Archivo', sans-serif;
-        }
-        .font-mono {
-            font-family: 'JetBrains Mono', monospace;
-        }
-        .pulse-ring {
-            animation: pulse-ring 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-        }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.85); opacity: 0.8; }
-            100% { transform: scale(1.4); opacity: 0; }
-        }
-        .live-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 999px;
-            background: #E11D2E;
-            animation: blink 1.4s ease-in-out infinite;
-        }
-        @keyframes blink {
-            50% { opacity: 0.25; }
-        }
-        .editorial-box {
-            border: 2px solid #111111;
-            box-shadow: 6px 6px 0px #111111;
-        }
-        .shimmer-bar {
-            background: linear-gradient(90deg, #111111 0%, #E11D2E 50%, #111111 100%);
-            background-size: 200% 100%;
-            animation: shimmer 1.8s infinite linear;
-        }
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
+        :root {
+            --ink: #0a0a0a;
+            --signal: #34d399;
+            --signal-dim: #059669;
+            --red: #E11D2E;
+            --bone: #f0ece4;
+            --font-main: 'Archivo', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
         }
 
-        /* Dark Mode Overrides */
-        [data-theme="dark"] body {
-            background: #0a0a0a !important;
-            color: #ffffff !important;
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+        html, body {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: var(--font-main);
+            user-select: none;
         }
-        [data-theme="dark"] .bg-white {
-            background-color: #111111 !important;
+
+        /* INTRO STAGE (Canvas-driven) */
+        #introStage {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        [data-theme="dark"] .text-\[\#111111\] {
-            color: #ffffff !important;
+
+        #introCanvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
         }
-        [data-theme="dark"] .text-\[\#111111\]\/50,
-        [data-theme="dark"] .text-\[\#111111\]\/60,
-        [data-theme="dark"] .text-\[\#111111\]\/80 {
-            color: #94a3b8 !important;
+
+        /* WORDMARK */
+        #introWordmark {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 10;
         }
-        [data-theme="dark"] .border-\[\#111111\] {
-            border-color: #262626 !important;
+
+        .wm-eyebrow {
+            font-family: var(--font-mono);
+            font-size: clamp(8px, 1.8vw, 11px);
+            font-weight: 600;
+            letter-spacing: 4px;
+            color: var(--signal);
+            text-transform: uppercase;
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            text-shadow: 0 0 18px rgba(52,211,153,0.9);
+            margin-bottom: 10px;
         }
-        [data-theme="dark"] .shadow-\[6px_6px_0px_\#111111\] {
-            box-shadow: 6px 6px 0px #000000 !important;
+
+        .wm-logo {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: clamp(48px, 14vw, 96px);
+            font-weight: 900;
+            letter-spacing: -2px;
+            color: var(--bone);
+            opacity: 0;
+            transform: scale(0.85);
+            transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.34,1.56,0.64,1);
+            position: relative;
+            text-shadow:
+                0 0 40px rgba(52,211,153,0.4),
+                0 0 80px rgba(52,211,153,0.15);
+        }
+
+        .wm-logo .signal-q {
+            color: var(--signal);
+            text-shadow: 0 0 30px rgba(52,211,153,1), 0 0 60px rgba(52,211,153,0.6);
+        }
+
+        .wm-tagline {
+            font-family: var(--font-mono);
+            font-size: clamp(8px, 2vw, 12px);
+            font-weight: 500;
+            letter-spacing: 6px;
+            color: rgba(240,236,228,0.5);
+            text-transform: uppercase;
+            opacity: 0;
+            transform: translateY(-8px);
+            transition: opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s;
+            margin-top: 8px;
+        }
+
+        /* HUD corner decorations */
+        .hud-corner {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .hud-corner.tl { top: 20px; left: 20px; border-top: 1.5px solid var(--signal); border-left: 1.5px solid var(--signal); }
+        .hud-corner.tr { top: 20px; right: 20px; border-top: 1.5px solid var(--signal); border-right: 1.5px solid var(--signal); }
+        .hud-corner.bl { bottom: 20px; left: 20px; border-bottom: 1.5px solid var(--signal); border-left: 1.5px solid var(--signal); }
+        .hud-corner.br { bottom: 20px; right: 20px; border-bottom: 1.5px solid var(--signal); border-right: 1.5px solid var(--signal); }
+
+        /* ECG line overlay */
+        #ecgLine {
+            position: absolute;
+            bottom: 20%;
+            left: 0;
+            width: 100%;
+            height: 80px;
+            opacity: 0;
+            z-index: 5;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Glitch clones */
+        .wm-logo-glitch-r, .wm-logo-glitch-g {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 9;
+        }
+        .glitch-text {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: clamp(48px, 14vw, 96px);
+            font-weight: 900;
+            letter-spacing: -2px;
+            opacity: 0;
+            mix-blend-mode: screen;
+            pointer-events: none;
+        }
+        .glitch-text.red   { color: #E11D2E; }
+        .glitch-text.green { color: #34d399; }
+
+        /* QR scan crosshair */
+        #qrCrosshair {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 8;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        .qr-box {
+            width: clamp(100px, 28vw, 180px);
+            height: clamp(100px, 28vw, 180px);
+            position: relative;
+        }
+
+        .qr-corner-line { position: absolute; width: 20px; height: 20px; }
+        .qr-corner-line.tl { top:0; left:0; border-top: 2px solid var(--signal); border-left: 2px solid var(--signal); }
+        .qr-corner-line.tr { top:0; right:0; border-top: 2px solid var(--signal); border-right: 2px solid var(--signal); }
+        .qr-corner-line.bl { bottom:0; left:0; border-bottom: 2px solid var(--signal); border-left: 2px solid var(--signal); }
+        .qr-corner-line.br { bottom:0; right:0; border-bottom: 2px solid var(--signal); border-right: 2px solid var(--signal); }
+
+        .qr-scan-beam {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, var(--signal) 40%, #a7f3d0 50%, var(--signal) 60%, transparent 100%);
+            box-shadow: 0 0 10px var(--signal), 0 0 20px rgba(52,211,153,0.5);
+            animation: qrBeamScan 0.7s linear infinite;
+        }
+
+        @keyframes qrBeamScan {
+            0%   { top: 0%; opacity: 1; }
+            90%  { opacity: 1; }
+            100% { top: 100%; opacity: 0.3; }
+        }
+
+        .qr-data-text {
+            position: absolute;
+            bottom: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: var(--font-mono);
+            font-size: 8px;
+            font-weight: 600;
+            color: var(--signal);
+            letter-spacing: 2px;
+            text-shadow: 0 0 8px var(--signal);
+            white-space: nowrap;
+        }
+
+        /* Intro → Splash transition */
+        #introStage.fade-out {
+            animation: introFadeOut 0.7s cubic-bezier(0.4,0,0.2,1) forwards;
+        }
+
+        @keyframes introFadeOut {
+            0%   { opacity:1; transform: scale(1); }
+            60%  { opacity:0.6; transform: scale(1.04); }
+            100% { opacity:0; transform: scale(1.08); }
+        }
+
+        /* MAIN SPLASH */
+        #splashStage {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.6s ease 0.1s;
+        }
+
+        #splashStage.visible { opacity: 1; }
+
+        .splash-art-image-wrapper {
+            position: relative;
+            height: 100%;
+            max-height: 100vh;
+            aspect-ratio: 9 / 16;
+            max-width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+            overflow: hidden;
+        }
+
+        .splash-art-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+            display: block;
+            user-select: none;
+            -webkit-user-drag: none;
+            opacity: 0;
+            transform: scale(1.06);
+            transition: opacity 0.8s ease, transform 1.2s cubic-bezier(0.16,1,0.3,1);
+        }
+
+        .splash-art-image.revealed {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .splash-cinematic-scan-beam {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle at 50% 60%, rgba(52,211,153,0.07) 0%, transparent 65%);
+            animation: splashScanPulse 3s ease-in-out infinite alternate;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .splash-cinematic-scan-beam.active { opacity: 1; }
+
+        @keyframes splashScanPulse {
+            0%   { opacity: 0.4; transform: scale(0.96); }
+            100% { opacity: 1;   transform: scale(1.02); }
+        }
+
+        /* HUD loading bar */
+        .splash-dynamic-loading-hud {
+            position: absolute;
+            top: 74.2%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 72%;
+            max-width: 360px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 25;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .splash-dynamic-loading-hud.visible { opacity: 1; }
+
+        .splash-progress-track {
+            width: 100%;
+            height: 6px;
+            background: rgba(10,20,16,0.7);
+            border: 1px solid rgba(152,255,217,0.4);
+            border-radius: 9999px;
+            overflow: hidden;
+            box-shadow: 0 0 12px rgba(52,211,153,0.3), inset 0 0 4px rgba(0,0,0,0.8);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+
+        .splash-progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #059669 0%, #10b981 40%, #34d399 75%, #a7f3d0 100%);
+            border-radius: 9999px;
+            box-shadow: 0 0 14px rgba(52,211,153,0.95), 0 0 24px rgba(167,243,208,0.65);
+            transition: width 0.12s ease-out;
+        }
+
+        .splash-telemetry-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            color: #a7f3d0;
+            letter-spacing: 0.6px;
+            text-shadow: 0 0 10px rgba(16,185,129,0.6);
+            padding: 0 2px;
+        }
+
+        .splash-telemetry-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .live-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: #34d399;
+            box-shadow: 0 0 8px #34d399;
+            animation: pulseDot 1s infinite alternate;
+            flex-shrink: 0;
+        }
+
+        @keyframes pulseDot {
+            from { opacity:0.4; transform:scale(0.85); }
+            to   { opacity:1;   transform:scale(1.2); }
+        }
+
+        .splash-percent-text {
+            font-family: var(--font-mono);
+            font-weight: 800;
+            color: #ecfdf5;
+            text-shadow: 0 0 8px rgba(167,243,208,0.8);
+            flex-shrink: 0;
         }
     </style>
 </head>
-<body class="h-screen w-screen overflow-hidden flex flex-col justify-between p-6 sm:p-10 select-none">
+<body>
 
-    <!-- Top Telemetry Header -->
-    <div class="w-full flex items-center justify-between font-mono text-[11px] text-[#111111]">
-        <div class="flex items-center gap-2">
-            <span class="live-dot"></span>
-            <span class="font-bold tracking-widest uppercase">INITIALIZING LIFEQR NETWORK</span>
-        </div>
-        <div class="hidden sm:block text-[#111111]/50 font-bold uppercase tracking-wider">
-            AES-256 GCM ZERO-KNOWLEDGE
+<!-- PLATE 1-4: Cinematic Motion Graphics Intro -->
+<div id="introStage">
+    <canvas id="introCanvas"></canvas>
+
+    <svg id="ecgLine" viewBox="0 0 400 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <filter id="ecgGlow" x="-20%" y="-80%" width="140%" height="260%">
+                <feGaussianBlur stdDeviation="2" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+        </defs>
+        <path id="ecgPath" d="" fill="none" stroke="#34d399" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round" filter="url(#ecgGlow)"/>
+    </svg>
+
+    <div id="qrCrosshair">
+        <div class="qr-box">
+            <div class="qr-corner-line tl"></div>
+            <div class="qr-corner-line tr"></div>
+            <div class="qr-corner-line bl"></div>
+            <div class="qr-corner-line br"></div>
+            <div class="qr-scan-beam"></div>
+            <div class="qr-data-text" id="qrDataText">SCANNING QR MATRIX</div>
         </div>
     </div>
 
-    <!-- Center Logo & Branding -->
-    <div class="flex-1 flex flex-col items-center justify-center text-center">
-        
-        <!-- Animated Icon Container -->
-        <div class="relative mb-8">
-            <div class="absolute inset-0 bg-[#E11D2E]/20 border-2 border-[#E11D2E] pulse-ring"></div>
-            <div class="relative w-24 h-24 sm:w-28 sm:h-28 bg-white border-2 border-[#111111] shadow-[6px_6px_0px_#111111] flex items-center justify-center">
-                <span class="material-symbols-outlined text-[#E11D2E]" style="font-size: 54px;">
-                    medical_services
-                </span>
+    <div class="wm-logo-glitch-r"><span class="glitch-text red" id="glitchR">LIFEQR</span></div>
+    <div class="wm-logo-glitch-g"><span class="glitch-text green" id="glitchG">LIFEQR</span></div>
+
+    <div class="hud-corner tl" id="hudTL"></div>
+    <div class="hud-corner tr" id="hudTR"></div>
+    <div class="hud-corner bl" id="hudBL"></div>
+    <div class="hud-corner br" id="hudBR"></div>
+
+    <div id="introWordmark">
+        <div class="wm-eyebrow" id="wmEyebrow">EMERGENCY HEALTHCARE TECHNOLOGY</div>
+        <div class="wm-logo" id="wmLogo">LIFE<span class="signal-q">QR</span></div>
+        <div class="wm-tagline" id="wmTagline">ONE SCAN CAN SAVE A LIFE</div>
+    </div>
+</div>
+
+<!-- PLATE 5: Poster Reveal -->
+<div id="splashStage">
+    <div class="splash-art-image-wrapper">
+        <img src="lifeqr_splash_cinematic.jpg" alt="LifeQR Emergency App"
+             class="splash-art-image" id="splashImg" draggable="false">
+        <div class="splash-cinematic-scan-beam" id="scanBeam" aria-hidden="true"></div>
+        <div class="splash-dynamic-loading-hud" id="loadingHud" aria-label="Loading Protocol">
+            <div class="splash-telemetry-row">
+                <div class="splash-telemetry-status">
+                    <span class="live-dot"></span>
+                    <span id="loadingStatusText">INITIALIZING EMERGENCY VAULT...</span>
+                </div>
+                <span id="loadingPercentText" class="splash-percent-text">0%</span>
+            </div>
+            <div class="splash-progress-track">
+                <div class="splash-progress-fill" id="splashProgressFill"></div>
             </div>
         </div>
-
-        <!-- Typography -->
-        <div class="space-y-2">
-            <div class="flex items-center justify-center gap-2">
-                <h1 class="font-black text-4xl sm:text-5xl tracking-tight text-[#111111]">LIFEQR</h1>
-                <span class="w-3 h-3 rounded-full bg-[#E11D2E]"></span>
-            </div>
-            <p class="font-mono text-xs uppercase tracking-widest font-bold text-[#E11D2E]">
-                Zero-Latency Emergency Triage Network
-            </p>
-        </div>
-
-        <!-- Indeterminate Progress Indicator -->
-        <div class="w-56 sm:w-64 h-2 border-2 border-[#111111] bg-white mt-10 overflow-hidden p-0.5">
-            <div class="h-full w-full shimmer-bar"></div>
-        </div>
-
-        <!-- Status Message -->
-        <div class="mt-4 flex items-center gap-2 font-mono text-xs font-bold text-[#111111]/80">
-            <span class="material-symbols-outlined text-sm animate-spin text-[#E11D2E]">sync</span>
-            <span id="loadingStatusText">Connecting to emergency vault...</span>
-        </div>
-
     </div>
+</div>
 
-    <!-- Bottom Security & Protocol Tag -->
-    <div class="w-full flex flex-col sm:flex-row items-center justify-between border-t-2 border-[#111111] pt-4 font-mono text-[11px] text-[#111111]/60">
-        <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-sm text-[#111111]">verified_user</span>
-            <span class="uppercase tracking-wider font-bold text-[#111111]">END-TO-END ENCRYPTED</span>
-        </div>
-        <p class="mt-2 sm:mt-0">&copy; 2025&ndash;2026 LifeQR &bull; ALL SYSTEMS OPERATIONAL</p>
-    </div>
+<script>
+(function() {
+    'use strict';
 
-    <!-- Auto-Redirect Logic -->
-    <script>
-        (function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const noRedirect = urlParams.get('no_redirect') === 'true' || urlParams.get('preview') === 'true';
-            const targetOverride = urlParams.get('target');
-            const statusEl = document.getElementById('loadingStatusText');
+    // Timeline in seconds
+    // Plate 1: PARTICLE FIELD BOOT     0.00 – 0.70
+    // Plate 2: ECG HEARTBEAT + GLITCH  0.70 – 1.40
+    // Plate 3: QR SCAN LOCK-ON         1.40 – 2.10
+    // Plate 4: IDENTITY STAMP          2.10 – 3.20
+    // Plate 5: POSTER REVEAL           3.20s+
+    var T = {
+        p2_start : 0.70,
+        p3_start : 1.40,
+        p4_start : 2.10,
+        p5_reveal: 3.20,
+        p5_hud   : 3.70,
+        redirect : 5.00
+    };
 
-            if (noRedirect) {
-                if (statusEl) statusEl.textContent = 'Preview Mode Active';
-                return;
+    // Easing
+    function easeOutExp(t) { return t === 1 ? 1 : 1 - Math.pow(2, -10 * t); }
+    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+    function norm(t, s, e) { return clamp((t - s) / (e - s), 0, 1); }
+
+    // Canvas
+    var canvas = document.getElementById('introCanvas');
+    var ctx    = canvas.getContext('2d');
+    var W = 0, H = 0;
+    function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Particle system
+    var PCOUNT = 120;
+    var particles = [];
+
+    function createParticle(initial) {
+        return {
+            x : Math.random() * W,
+            y : initial ? Math.random() * H : (Math.random() < 0.5 ? -4 : H + 4),
+            vx: (Math.random() - 0.5) * 0.35,
+            vy: initial ? (Math.random() - 0.5) * 0.35 : (0.3 + Math.random() * 0.5),
+            r : 0.5 + Math.random() * 1.5,
+            alpha: 0,
+            targetAlpha: 0.15 + Math.random() * 0.45,
+            pulse: Math.random() * Math.PI * 2,
+            pulseSpeed: 0.02 + Math.random() * 0.04,
+            isSignal: Math.random() < 0.3
+        };
+    }
+
+    for (var i = 0; i < PCOUNT; i++) particles.push(createParticle(true));
+
+    function updateParticle(p, dt) {
+        p.x += p.vx; p.y += p.vy;
+        p.pulse += p.pulseSpeed;
+        p.alpha = Math.min(p.alpha + 0.02, p.targetAlpha);
+        if (p.x < -10 || p.x > W + 10 || p.y < -10 || p.y > H + 10) {
+            var np = createParticle(false);
+            Object.assign(p, np);
+        }
+    }
+
+    function drawParticle(p, ga) {
+        var a = p.alpha * (0.7 + 0.3 * Math.sin(p.pulse)) * ga;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.isSignal ? ('rgba(52,211,153,' + a + ')') : ('rgba(240,236,228,' + (a * 0.35) + ')');
+        ctx.fill();
+    }
+
+    function drawGrid(alpha) {
+        if (alpha <= 0) return;
+        var gs = Math.min(W, H) / 12;
+        ctx.strokeStyle = 'rgba(52,211,153,' + (alpha * 0.055) + ')';
+        ctx.lineWidth = 0.5;
+        for (var x = 0; x < W; x += gs) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+        }
+        for (var y = 0; y < H; y += gs) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+    }
+
+    function drawScanlines() {
+        for (var y = 0; y < H; y += 4) {
+            ctx.fillStyle = 'rgba(0,0,0,0.12)';
+            ctx.fillRect(0, y, W, 2);
+        }
+    }
+
+    function drawVignette() {
+        var grad = ctx.createRadialGradient(W/2, H/2, H*0.2, W/2, H/2, H*0.75);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.65)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+    }
+
+    // ECG path builder — pure function of progress
+    function buildECGPath(progress) {
+        var pw = 400, beats = 3, bw = pw / beats;
+        var cy = 40, amp = 32;
+        var d = 'M 0 ' + cy;
+        for (var b = 0; b < beats; b++) {
+            var bx = b * bw;
+            var maxX = bx + bw * clamp(progress * beats - b, 0, 1);
+            if (maxX <= bx) break;
+
+            var baseEnd = Math.min(bx + bw * 0.3, maxX);
+            d += ' L ' + baseEnd.toFixed(1) + ' ' + cy;
+            if (maxX <= bx + bw * 0.3) break;
+
+            var pEnd = Math.min(bx + bw * 0.40, maxX);
+            d += ' Q ' + (bx + bw*0.35).toFixed(1) + ' ' + (cy - amp*0.15).toFixed(1) + ' ' + pEnd.toFixed(1) + ' ' + cy;
+            if (maxX <= bx + bw * 0.40) break;
+
+            var qEnd = Math.min(bx + bw * 0.46, maxX);
+            d += ' L ' + qEnd.toFixed(1) + ' ' + (cy + amp*0.12).toFixed(1);
+            if (maxX <= bx + bw * 0.46) break;
+
+            var rPeak = Math.min(bx + bw * 0.52, maxX);
+            d += ' L ' + rPeak.toFixed(1) + ' ' + (cy - amp*0.92).toFixed(1);
+            if (maxX <= bx + bw * 0.52) break;
+
+            var sPeak = Math.min(bx + bw * 0.58, maxX);
+            d += ' L ' + sPeak.toFixed(1) + ' ' + (cy + amp*0.20).toFixed(1);
+            if (maxX <= bx + bw * 0.58) break;
+
+            var tEnd = Math.min(bx + bw * 0.75, maxX);
+            d += ' Q ' + (bx + bw*0.665).toFixed(1) + ' ' + (cy - amp*0.25).toFixed(1) + ' ' + tEnd.toFixed(1) + ' ' + cy;
+            if (maxX <= bx + bw * 0.75) break;
+
+            d += ' L ' + maxX.toFixed(1) + ' ' + cy;
+        }
+        return d;
+    }
+
+    // DOM refs
+    var wmEyebrow = document.getElementById('wmEyebrow');
+    var wmLogo    = document.getElementById('wmLogo');
+    var wmTagline = document.getElementById('wmTagline');
+    var ecgSvg    = document.getElementById('ecgLine');
+    var ecgPath   = document.getElementById('ecgPath');
+    var qrBox     = document.getElementById('qrCrosshair');
+    var qrText    = document.getElementById('qrDataText');
+    var glitchR   = document.getElementById('glitchR');
+    var glitchG   = document.getElementById('glitchG');
+    var hudTL = document.getElementById('hudTL');
+    var hudTR = document.getElementById('hudTR');
+    var hudBL = document.getElementById('hudBL');
+    var hudBR = document.getElementById('hudBR');
+    var introStage = document.getElementById('introStage');
+    var splashStage = document.getElementById('splashStage');
+    var splashImg  = document.getElementById('splashImg');
+    var scanBeam   = document.getElementById('scanBeam');
+    var loadingHud = document.getElementById('loadingHud');
+
+    var qrStrings = ['SCANNING QR MATRIX', 'READING MEDICAL ID', 'ACCESS GRANTED \u2713'];
+    var qrStringIdx = 0;
+
+    // Glitch state
+    var glitchActive = false;
+    var glitchTimer  = 0;
+    var glitchTriggered = false;
+
+    function triggerGlitch() { glitchActive = true; glitchTimer = 0; }
+
+    function updateGlitch(dt) {
+        if (!glitchActive) { glitchR.style.opacity = 0; glitchG.style.opacity = 0; return; }
+        glitchTimer += dt;
+        var phase = glitchTimer * 1000;
+        var on = (Math.floor(phase / 60) % 3) !== 2;
+        if (on) {
+            var ox = ((Math.random()-0.5)*8).toFixed(1);
+            var oy = ((Math.random()-0.5)*4).toFixed(1);
+            var ox2 = ((Math.random()-0.5)*8).toFixed(1);
+            var oy2 = ((Math.random()-0.5)*4).toFixed(1);
+            glitchR.style.opacity = 0.55;
+            glitchG.style.opacity = 0.45;
+            glitchR.style.transform = 'translate(' + ox + 'px,' + oy + 'px)';
+            glitchG.style.transform = 'translate(' + ox2 + 'px,' + oy2 + 'px)';
+        } else {
+            glitchR.style.opacity = 0;
+            glitchG.style.opacity = 0;
+        }
+        if (glitchTimer > 0.5) {
+            glitchActive = false;
+            glitchR.style.opacity = 0;
+            glitchG.style.opacity = 0;
+        }
+    }
+
+    // State flags
+    var p4Entered = false;
+    var p5Entered = false;
+    var redirectDone = false;
+
+    // Main animation loop — every frame is f(t)
+    var startTime = null;
+    var lastTime  = null;
+
+    function frame(now) {
+        if (!startTime) startTime = now;
+        var t  = (now - startTime) / 1000;
+        var dt = lastTime ? (now - lastTime) / 1000 : 0;
+        lastTime = now;
+
+        // Background
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, W, H);
+
+        // Grid (fades in during plate 1)
+        var gridA = norm(t, 0, 0.5);
+        drawGrid(gridA);
+
+        // Particles
+        var pIn  = norm(t, 0, 0.5);
+        var pOut = 1 - norm(t, T.p4_start + 0.4, T.p4_start + 0.9);
+        var pA   = clamp(pIn * pOut, 0, 1);
+        for (var i = 0; i < PCOUNT; i++) {
+            updateParticle(particles[i], dt);
+            drawParticle(particles[i], pA);
+        }
+
+        // Vignette + scanlines (always)
+        drawVignette();
+        drawScanlines();
+
+        // PLATE 1: Pulse rings from center
+        if (t < T.p2_start + 0.2) {
+            var p1 = norm(t, 0.1, T.p2_start);
+            for (var r = 0; r < 3; r++) {
+                var rp = clamp(p1 - r * 0.18, 0, 1);
+                if (rp <= 0) continue;
+                var radius = rp * Math.min(W, H) * 0.45;
+                var ralpha = (1 - rp) * 0.35;
+                ctx.beginPath();
+                ctx.arc(W/2, H/2, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(52,211,153,' + ralpha + ')';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+            // Center crosshair
+            if (p1 > 0.1) {
+                var ca = Math.min(p1 * 3, 1) * 0.55;
+                var cs = 16;
+                ctx.strokeStyle = 'rgba(52,211,153,' + ca + ')';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(W/2 - cs, H/2); ctx.lineTo(W/2 + cs, H/2);
+                ctx.moveTo(W/2, H/2 - cs); ctx.lineTo(W/2, H/2 + cs);
+                ctx.stroke();
+            }
+        }
+
+        // PLATE 2: ECG heartbeat
+        if (t >= T.p2_start && t < T.p3_start + 0.15) {
+            var ecgProg  = norm(t, T.p2_start, T.p3_start - 0.1);
+            var ecgAlpha = norm(t, T.p2_start, T.p2_start + 0.2)
+                         * (1 - norm(t, T.p3_start, T.p3_start + 0.15));
+            ecgPath.setAttribute('d', buildECGPath(ecgProg));
+            ecgSvg.style.opacity = ecgAlpha;
+
+            // Red flash on R-spike
+            var spikeT = norm(t, T.p2_start + 0.28, T.p2_start + 0.38);
+            if (spikeT > 0 && spikeT < 1) {
+                var fa = Math.sin(spikeT * Math.PI) * 0.10;
+                ctx.fillStyle = 'rgba(225,29,46,' + fa + ')';
+                ctx.fillRect(0, 0, W, H);
             }
 
-            setTimeout(() => {
-                if (statusEl) statusEl.textContent = 'Authenticating session token...';
-            }, 700);
+            // Trigger glitch once on spike
+            if (t >= T.p2_start + 0.28 && !glitchTriggered) {
+                glitchTriggered = true;
+                triggerGlitch();
+            }
+        } else {
+            ecgSvg.style.opacity = 0;
+        }
 
-            setTimeout(() => {
-                if (targetOverride) {
-                    window.location.href = targetOverride;
+        // PLATE 3: QR scan
+        if (t >= T.p3_start && t < T.p4_start + 0.1) {
+            var qrA = norm(t, T.p3_start, T.p3_start + 0.25)
+                    * (1 - norm(t, T.p4_start - 0.1, T.p4_start + 0.1));
+            qrBox.style.opacity = qrA;
+
+            var elapsed = t - T.p3_start;
+            var newIdx  = Math.min(Math.floor(elapsed / 0.22), qrStrings.length - 1);
+            if (newIdx !== qrStringIdx) { qrStringIdx = newIdx; qrText.textContent = qrStrings[newIdx]; }
+
+            // Green fill sweep
+            var fillP = norm(t, T.p3_start, T.p4_start - 0.15);
+            ctx.fillStyle = 'rgba(52,211,153,' + (fillP * 0.04) + ')';
+            ctx.fillRect(0, 0, W, H);
+        } else if (t < T.p3_start) {
+            qrBox.style.opacity = 0;
+        }
+
+        // PLATE 4: Identity stamp
+        if (t >= T.p4_start && !p4Entered) {
+            p4Entered = true;
+            qrBox.style.opacity = 0;
+            wmEyebrow.style.opacity = '1'; wmEyebrow.style.transform = 'translateY(0)';
+            setTimeout(function() { wmLogo.style.opacity = '1'; wmLogo.style.transform = 'scale(1)'; }, 80);
+            setTimeout(function() { wmTagline.style.opacity = '1'; wmTagline.style.transform = 'translateY(0)'; }, 220);
+            var corners = [hudTL, hudTR, hudBL, hudBR];
+            corners.forEach(function(el, i) { setTimeout(function() { el.style.opacity = '0.8'; }, i * 50); });
+        }
+
+        if (t >= T.p4_start) {
+            var holdA = norm(t, T.p4_start, T.p4_start + 0.3)
+                      * (1 - norm(t, T.p5_reveal - 0.4, T.p5_reveal));
+            var cg = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.min(W, H) * 0.35);
+            cg.addColorStop(0, 'rgba(52,211,153,' + (holdA * 0.06) + ')');
+            cg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = cg;
+            ctx.fillRect(0, 0, W, H);
+        }
+
+        // Glitch update
+        updateGlitch(dt);
+
+        // PLATE 5: Poster reveal
+        if (t >= T.p5_reveal && !p5Entered) {
+            p5Entered = true;
+            introStage.classList.add('fade-out');
+            introStage.addEventListener('animationend', function() {
+                introStage.style.display = 'none';
+            }, { once: true });
+            splashStage.classList.add('visible');
+            requestAnimationFrame(function() {
+                splashImg.classList.add('revealed');
+                scanBeam.classList.add('active');
+                setTimeout(function() {
+                    loadingHud.classList.add('visible');
+                    startLoadingBar();
+                }, 400);
+            });
+        }
+
+        if (!p5Entered) requestAnimationFrame(frame);
+    }
+
+    requestAnimationFrame(frame);
+
+    // Loading bar for poster phase
+    function startLoadingBar() {
+        var statusEl  = document.getElementById('loadingStatusText');
+        var fillEl    = document.getElementById('splashProgressFill');
+        var percentEl = document.getElementById('loadingPercentText');
+
+        var stages = [
+            { p: 25,  msg: 'CONNECTING TO EMERGENCY VAULT...' },
+            { p: 55,  msg: 'VERIFYING OPTICAL QR MATRIX...' },
+            { p: 85,  msg: 'CALIBRATING GPS TELEMETRY...' },
+            { p: 100, msg: 'EMERGENCY NETWORK READY' }
+        ];
+
+        var progress = 0;
+        var iv = setInterval(function() {
+            progress = Math.min(100, progress + 3.5);
+            if (fillEl)    fillEl.style.width = progress + '%';
+            if (percentEl) percentEl.textContent = Math.round(progress) + '%';
+            var stage = stages.find(function(s) { return progress <= s.p; }) || stages[stages.length - 1];
+            if (statusEl && stage) statusEl.textContent = stage.msg;
+            if (progress >= 100) clearInterval(iv);
+        }, 45);
+    }
+
+    // Redirect logic (preserved from original)
+    var urlParams     = new URLSearchParams(window.location.search);
+    var noRedirect    = urlParams.get('no_redirect') === 'true' || urlParams.get('preview') === 'true';
+    var targetOverride = urlParams.get('target');
+
+    if (!noRedirect) {
+        setTimeout(function() {
+            if (redirectDone) return;
+            redirectDone = true;
+
+            if (targetOverride) { window.location.href = targetOverride; return; }
+
+            try {
+                var token   = localStorage.getItem('token');
+                var userStr = localStorage.getItem('user');
+                if (token && userStr) {
+                    var user = JSON.parse(userStr);
+                    var role = (user.role || '').toLowerCase();
+                    if      (role === 'doctor')                                          window.location.href = 'doctor_dashboard.html';
+                    else if (role === 'crew' || role === 'paramedic' || role === 'ambulance') window.location.href = 'CrewAmbulance_dashboard.html';
+                    else if (role === 'er'   || role === 'hospital')                     window.location.href = 'er_dashboard.html';
+                    else if (role === 'admin')                                            window.location.href = 'admin_dashboard.html';
+                    else                                                                  window.location.href = 'patient_app.html';
                     return;
                 }
+            } catch(e) { console.warn('Session check:', e); }
 
-                // Check stored auth session
-                try {
-                    const token = localStorage.getItem('token');
-                    const userStr = localStorage.getItem('user');
+            window.location.href = 'patient_app.html';
+        }, (T.redirect * 1000) + 400);
+    } else {
+        setTimeout(function() {
+            var el = document.getElementById('loadingStatusText');
+            if (el) el.textContent = 'PREVIEW MODE ACTIVE';
+        }, (T.p5_hud * 1000) + 200);
+    }
 
-                    if (token && userStr) {
-                        const user = JSON.parse(userStr);
-                        const role = (user.role || '').toLowerCase();
-
-                        if (role === 'doctor') {
-                            window.location.href = 'doctor_dashboard.html';
-                            return;
-                        } else if (role === 'crew' || role === 'paramedic' || role === 'ambulance') {
-                            window.location.href = 'CrewAmbulance_dashboard.html';
-                            return;
-                        } else if (role === 'er' || role === 'hospital') {
-                            window.location.href = 'er_dashboard.html';
-                            return;
-                        } else if (role === 'admin') {
-                            window.location.href = 'admin_dashboard.html';
-                            return;
-                        } else {
-                            window.location.href = 'patient_dashboard.html';
-                            return;
-                        }
-                    }
-                } catch (e) {
-                    console.warn('Session check fallback:', e);
-                }
-
-                // Default destination for unauthenticated visitors
-                window.location.href = 'lifeqr_login.html';
-            }, 1600);
-        })();
-    </script>
+})();
+</script>
 </body>
 </html>

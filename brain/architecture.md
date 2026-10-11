@@ -271,8 +271,10 @@ Socket.IO is mounted directly to the HTTP server instance in [backend/server.js]
 ### 4.2. Real-Time Event Catalogue
 | Event Name | Direction | Payload Structure | Trigger / Target |
 | :--- | :--- | :--- | :--- |
-| `sos-alert` | Server $\rightarrow$ `crew:all` | `{ sosId, patientId, name, bloodGroup, allergies, location: { lat, lng }, timestamp }` | Dispatched by patient SOS button or emergency card tap. Handled in [crew-dashboard.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/js/crew-dashboard.js). |
-| `sos-acknowledged` | Server $\rightarrow$ `patient:<id>` | `{ sosId, crewId, crewName, vehicleNumber, etaMinutes, status }` | Paramedic taps "Accept Dispatch" on crew dashboard. Handled in [patient-dashboard.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/js/patient-dashboard.js). |
+| `sos-alert` | Server $\rightarrow$ `crew:all` | `{ sosId, patientId, name, bloodGroup, allergies, location: { lat, lng }, timestamp }` | Dispatched by patient SOS button or emergency card tap. Handled in [crew-dashboard.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/js/crew-dashboard.js) with 2–3km proximity filtering. |
+| `sos-dispatch-accepted` | Server $\rightarrow$ `patient:<id>` & `crew:all` | `{ sosId, crewName, crewPhone, vehicleNumber, station, etaMinutes, status, timestamp }` | Paramedic taps "Accept Dispatch" on radar marker. Triggers immediate patient notification banner/modal with direct call button in [patient-dashboard.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/js/patient-dashboard.js). |
+| `sos-claimed` | Server $\rightarrow$ `crew:all` | `{ sosId, claimedBy: { name, phone, vehicleNumber } }` | Broadcasted when an ambulance claims an active SOS beacon to prevent duplicate response. |
+| `sos-acknowledged` | Server $\rightarrow$ `patient:<id>` | `{ sosId, crewId, crewName, vehicleNumber, etaMinutes, status }` | Legacy compatibility dispatch notification. |
 | `telemetry-stream` | Client $\rightarrow$ Server $\rightarrow$ `hospital:er` | `{ patientId, hr, bp, spo2, gcs, respiratoryRate, inTransitMeds }` | Streamed by ambulance crew en route to the ER. Handled in [er-dashboard.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/js/er-dashboard.js). |
 | `er-handover-update` | Server $\rightarrow$ `hospital:er` | `{ handoverId, traumaBay, triageLevel, attendingDoctor }` | Trauma bay receiving team prepares bay for patient arrival. Handled in [er-dashboard.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/js/er-dashboard.js). |
 

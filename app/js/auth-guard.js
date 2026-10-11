@@ -69,6 +69,8 @@ function redirectUserToDashboard(role) {
     window.location.href = 'doctor_dashboard.html';
   } else if (role === 'crew') {
     window.location.href = 'CrewAmbulance_dashboard.html';
+  } else if (role === 'hospital') {
+    window.location.href = 'hospital_dashboard.html';
   } else if (role === 'admin') {
     window.location.href = 'admin_dashboard.html';
   } else {

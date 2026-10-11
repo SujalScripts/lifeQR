@@ -189,9 +189,15 @@
       </a>
       
       <!-- Status & Actions -->
-      <div class="flex items-center gap-3 sm:gap-4 font-mono">
+      <div class="flex items-center gap-2.5 sm:gap-3 font-mono">
+        <!-- God-Mode Create User Button -->
+        <button onclick="openCreateUserModal()" class="btn-primary text-xs px-3.5 py-1.5 uppercase font-mono tracking-wider font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_#111111]" title="God Mode: Create Any User Account (Patient, Doctor, Crew, Hospital, Admin)">
+          <span class="material-symbols-outlined text-sm text-[#E11D2E]">person_add</span>
+          <span>Create User</span>
+        </button>
+
         <!-- Theme Toggle Button -->
-        <button onclick="toggleTheme()" class="btn-secondary text-xs px-3.5 py-1.5 uppercase font-mono tracking-wider font-bold" title="Toggle theme (Auto-synced with device appearance)">
+        <button onclick="toggleTheme()" class="btn-secondary text-xs px-3 py-1.5 uppercase font-mono tracking-wider font-bold" title="Toggle theme (Auto-synced with device appearance)">
           <span class="theme-toggle-icon material-symbols-outlined text-sm">dark_mode</span>
           <span class="theme-toggle-label hidden sm:inline">Theme</span>
         </button>
@@ -217,14 +223,14 @@
     <div class="mb-4 border-b-2 border-[#111111] pb-6">
       <div class="inline-flex items-center gap-2 px-3 py-1 border-2 border-[#111111] bg-[#f9fafb] text-[11px] font-mono font-bold uppercase tracking-widest text-[#E11D2E] mb-2">
         <span class="material-symbols-outlined text-sm">settings_suggest</span>
-        <span>INFRASTRUCTURE COMMAND</span>
+        <span>INFRASTRUCTURE COMMAND &bull; FULL PLATFORM CONTROL</span>
       </div>
       <h1 class="font-black text-3xl sm:text-4xl text-[#111111] tracking-tight uppercase">Systems Administration</h1>
-      <p class="text-xs sm:text-sm text-[#111111]/70 font-sans font-medium mt-1">Manage user accounts, review practitioner credentials, and monitor system metrics.</p>
+      <p class="text-xs sm:text-sm text-[#111111]/70 font-sans font-medium mt-1">Universal platform control: Creation, Deletion, Updation, Fleet Management, and Emergency Self-Healing Diagnostics.</p>
     </div>
 
     <!-- Analytics Stats Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4 font-mono">
+    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4 font-mono">
       <div class="editorial-stat-card p-4 text-center">
         <p class="text-[9px] text-[#111111]/60 font-bold uppercase tracking-wider">Total Users</p>
         <p class="font-black text-2xl text-[#111111] mt-1" id="statTotalUsers">0</p>
@@ -246,8 +252,12 @@
         <p class="font-black text-2xl text-emerald-700 mt-1" id="statTotalScans">0</p>
       </div>
       <div class="editorial-stat-card p-4 text-center border-2 border-[#E11D2E]">
-        <p class="text-[9px] text-[#E11D2E] font-bold uppercase tracking-wider">Verif. Queue</p>
-        <p class="font-black text-2xl text-[#E11D2E] mt-1" id="statPendingVerifications">0</p>
+        <p class="text-[9px] text-[#E11D2E] font-bold uppercase tracking-wider">SOS Beacons</p>
+        <p class="font-black text-2xl text-[#E11D2E] mt-1" id="statTotalSos">0</p>
+      </div>
+      <div class="editorial-stat-card p-4 text-center">
+        <p class="text-[9px] text-[#111111]/60 font-bold uppercase tracking-wider">Verif. Queue</p>
+        <p class="font-black text-2xl text-amber-700 mt-1" id="statPendingVerifications">0</p>
       </div>
       <div class="editorial-stat-card p-4 text-center border-2 border-blue-600 bg-blue-50/20">
         <p class="text-[9px] text-blue-700 font-bold uppercase tracking-wider">Help Requests</p>
@@ -256,21 +266,34 @@
     </div>
 
     <!-- Tabs Navigation -->
-    <div class="flex items-center gap-3 pt-2 font-mono text-xs flex-wrap">
-      <button onclick="switchTab('users')" id="tabUsers" class="btn-primary px-5 py-2.5 uppercase tracking-wider font-bold">
-        User Accounts Management
+    <div class="flex items-center gap-2 sm:gap-3 pt-2 font-mono text-xs flex-wrap">
+      <button onclick="switchTab('users')" id="tabUsers" class="btn-primary px-4 py-2 uppercase tracking-wider font-bold">
+        User Directory &amp; Accounts
       </button>
-      <button onclick="switchTab('verifications')" id="tabVerifications" class="btn-secondary px-5 py-2.5 uppercase tracking-wider font-bold">
-        Professional Verification Queue
+      <button onclick="switchTab('sosCommand')" id="tabSosCommand" class="btn-secondary px-4 py-2 uppercase tracking-wider font-bold flex items-center gap-1.5 text-[#E11D2E] hover:text-white">
+        <span class="material-symbols-outlined text-sm">emergency</span>
+        <span>SOS Command</span>
+        <span id="tabSosBadge" class="px-1.5 py-0.2 bg-red-100 border border-[#E11D2E] text-[#E11D2E] text-[9px] font-bold">0</span>
       </button>
-      <button onclick="switchTab('helpTickets')" id="tabHelpTickets" class="btn-secondary px-5 py-2.5 uppercase tracking-wider font-bold flex items-center gap-1.5 text-blue-700 hover:text-white">
+      <button onclick="switchTab('fleetControl')" id="tabFleetControl" class="btn-secondary px-4 py-2 uppercase tracking-wider font-bold flex items-center gap-1.5 hover:text-white">
+        <span class="material-symbols-outlined text-sm">ambulance</span>
+        <span>Fleet &amp; Duty</span>
+      </button>
+      <button onclick="switchTab('godMode')" id="tabGodMode" class="btn-secondary px-4 py-2 uppercase tracking-wider font-bold flex items-center gap-1.5 text-amber-800 hover:text-white">
+        <span class="material-symbols-outlined text-sm">build_circle</span>
+        <span>Problem Solver &amp; Diagnostics</span>
+      </button>
+      <button onclick="switchTab('verifications')" id="tabVerifications" class="btn-secondary px-4 py-2 uppercase tracking-wider font-bold">
+        Verification Queue
+      </button>
+      <button onclick="switchTab('helpTickets')" id="tabHelpTickets" class="btn-secondary px-4 py-2 uppercase tracking-wider font-bold flex items-center gap-1.5 text-blue-700 hover:text-white">
         <span class="material-symbols-outlined text-sm">support_agent</span>
-        <span>Help &amp; Support Tickets</span>
+        <span>Help Tickets</span>
         <span id="statHelpTicketsTabBadge" class="hidden px-2 py-0.5 border border-[#E11D2E] bg-red-100 text-[#E11D2E] text-[10px] font-mono font-bold">0 Pending</span>
       </button>
-      <button onclick="switchTab('aiOps')" id="tabAiOps" class="btn-secondary px-5 py-2.5 uppercase tracking-wider font-bold flex items-center gap-1.5 text-[#E11D2E] hover:text-white">
+      <button onclick="switchTab('aiOps')" id="tabAiOps" class="btn-secondary px-4 py-2 uppercase tracking-wider font-bold flex items-center gap-1.5 text-[#E11D2E] hover:text-white">
         <span class="material-symbols-outlined text-sm">smart_toy</span>
-        <span>AI Operations &amp; Copilot</span>
+        <span>AI Copilot</span>
       </button>
     </div>
 
@@ -286,9 +309,15 @@
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
+          <!-- God-Mode Create User Button -->
+          <button onclick="openCreateUserModal()" class="btn-primary text-xs px-3 py-1.5 uppercase font-mono font-bold tracking-wider flex items-center gap-1 shadow-[2px_2px_0px_#111111]" title="God Mode: Provision New User Account (Patient, Doctor, Crew, Hospital, Admin)">
+            <span class="material-symbols-outlined text-xs text-[#E11D2E]">person_add</span>
+            <span>+ Create User</span>
+          </button>
+
           <!-- Live User Search -->
           <div class="relative">
-            <input type="text" id="adminUserSearchInput" oninput="handleAdminUserSearch(this.value)" placeholder="Search Name, Email, Phone, QR ID..." class="px-3 py-1.5 text-xs font-mono border-2 border-[#111111] w-64 bg-white">
+            <input type="text" id="adminUserSearchInput" oninput="handleAdminUserSearch(this.value)" placeholder="Search Name, Email, Phone, QR ID..." class="px-3 py-1.5 text-xs font-mono border-2 border-[#111111] w-60 bg-white">
             <span class="material-symbols-outlined absolute right-2 top-2 text-xs text-gray-400 pointer-events-none">search</span>
           </div>
 
@@ -320,6 +349,344 @@
             <!-- Rendered dynamically -->
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- 1. Emergency SOS Incident Command Center Card -->
+    <div id="sectionSosCommand" class="hidden editorial-card p-6 space-y-5">
+      <div class="flex items-center justify-between pb-3 border-b-2 border-[#111111] flex-wrap gap-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 bg-[#E11D2E] text-white flex items-center justify-center border-2 border-[#111111] shadow-[2px_2px_0px_#111111]">
+            <span class="material-symbols-outlined text-2xl">emergency</span>
+          </div>
+          <div>
+            <h3 class="font-black text-sm uppercase text-[#111111] flex items-center gap-2">
+              <span>Emergency SOS Command Center &bull; Incident Radar</span>
+              <span id="sosLivePulseDot" class="w-2.5 h-2.5 rounded-full bg-[#E11D2E] animate-pulse"></span>
+            </h3>
+            <p class="text-xs font-mono text-[#111111]/60 mt-0.5">Platform-wide real-time distress beacons, dispatched ambulances, and incident overrides</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 font-mono">
+          <button onclick="loadAdminSosIncidents()" class="btn-primary text-xs px-3.5 py-2 uppercase font-bold tracking-wider flex items-center gap-1.5 shadow-[2px_2px_0px_#111111]">
+            <span class="material-symbols-outlined text-sm">sync</span>
+            <span>Refresh Beacons</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- SOS KPI Counter Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-center">
+        <div class="p-3 border-2 border-[#111111] bg-white">
+          <span class="text-[10px] text-gray-500 font-bold uppercase block">Total Incidents</span>
+          <strong id="sosKpiTotal" class="text-xl text-[#111111]">0</strong>
+        </div>
+        <div class="p-3 border-2 border-[#E11D2E] bg-red-50">
+          <span class="text-[10px] text-[#E11D2E] font-bold uppercase block">Active Distress</span>
+          <strong id="sosKpiActive" class="text-xl text-[#E11D2E]">0</strong>
+        </div>
+        <div class="p-3 border-2 border-emerald-600 bg-emerald-50">
+          <span class="text-[10px] text-emerald-800 font-bold uppercase block">Dispatched En Route</span>
+          <strong id="sosKpiDispatched" class="text-xl text-emerald-700">0</strong>
+        </div>
+        <div class="p-3 border-2 border-[#111111] bg-gray-50">
+          <span class="text-[10px] text-gray-500 font-bold uppercase block">Resolved / Closed</span>
+          <strong id="sosKpiResolved" class="text-xl text-gray-700">0</strong>
+        </div>
+      </div>
+
+      <!-- SOS Incidents Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse font-sans text-xs">
+          <thead>
+            <tr class="border-b-2 border-[#111111] text-[#111111] text-[10px] uppercase font-bold tracking-wider font-mono bg-gray-50">
+              <th class="p-3">#</th>
+              <th class="p-3">Patient / Victim</th>
+              <th class="p-3">Incident Coordinates</th>
+              <th class="p-3">Status</th>
+              <th class="p-3">Responding Ambulance</th>
+              <th class="p-3">Distress Time</th>
+              <th class="p-3 text-right">God-Mode Overrides</th>
+            </tr>
+          </thead>
+          <tbody id="sosTableBody" class="divide-y border-b border-[#111111]/20 font-mono">
+            <tr>
+              <td colspan="7" class="p-8 text-center text-gray-500 uppercase font-bold text-xs">
+                Loading emergency SOS distress mesh...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 2. Ambulance Fleet & Crew Duty Control Card -->
+    <div id="sectionFleetControl" class="hidden editorial-card p-6 space-y-5">
+      <div class="flex items-center justify-between pb-3 border-b-2 border-[#111111] flex-wrap gap-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 bg-[#111111] text-white flex items-center justify-center border-2 border-[#111111] shadow-[2px_2px_0px_#111111]">
+            <span class="material-symbols-outlined text-2xl text-[#E11D2E]">ambulance</span>
+          </div>
+          <div>
+            <h3 class="font-black text-sm uppercase text-[#111111] flex items-center gap-2">
+              <span>Ambulance Fleet &bull; Paramedic Duty Master</span>
+            </h3>
+            <p class="text-xs font-mono text-[#111111]/60 mt-0.5">Real-time emergency unit readiness, 24/7 GPS mesh, and administrative duty clock overrides</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 font-mono">
+          <button onclick="loadAdminFleet()" class="btn-primary text-xs px-3.5 py-2 uppercase font-bold tracking-wider flex items-center gap-1.5 shadow-[2px_2px_0px_#111111]">
+            <span class="material-symbols-outlined text-sm">sync</span>
+            <span>Refresh Fleet</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Fleet KPI Strips -->
+      <div class="grid grid-cols-3 gap-3 font-mono text-center">
+        <div class="p-3 border-2 border-[#111111] bg-white">
+          <span class="text-[10px] text-gray-500 font-bold uppercase block">Total Ambulance Units</span>
+          <strong id="fleetKpiTotal" class="text-xl text-[#111111]">0</strong>
+        </div>
+        <div class="p-3 border-2 border-emerald-600 bg-emerald-50">
+          <span class="text-[10px] text-emerald-800 font-bold uppercase block">Active On-Duty Units</span>
+          <strong id="fleetKpiOnDuty" class="text-xl text-emerald-700">0</strong>
+        </div>
+        <div class="p-3 border-2 border-slate-500 bg-slate-50">
+          <span class="text-[10px] text-slate-700 font-bold uppercase block">Standby Off-Duty</span>
+          <strong id="fleetKpiOffDuty" class="text-xl text-slate-600">0</strong>
+        </div>
+      </div>
+
+      <!-- Fleet Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse font-sans text-xs">
+          <thead>
+            <tr class="border-b-2 border-[#111111] text-[#111111] text-[10px] uppercase font-bold tracking-wider font-mono bg-gray-50">
+              <th class="p-3">#</th>
+              <th class="p-3">Unit &amp; Vehicle Code</th>
+              <th class="p-3">Crew Lead &amp; Contact</th>
+              <th class="p-3">Station / Fleet Base</th>
+              <th class="p-3">Duty Status</th>
+              <th class="p-3">GPS Location</th>
+              <th class="p-3 text-right">Duty Override Action</th>
+            </tr>
+          </thead>
+          <tbody id="fleetTableBody" class="divide-y border-b border-[#111111]/20 font-mono">
+            <tr>
+              <td colspan="7" class="p-8 text-center text-gray-500 uppercase font-bold text-xs">
+                Loading ambulance fleet records...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 3. God-Mode Problem Solver & System Self-Healing Card -->
+    <div id="sectionGodMode" class="hidden editorial-card p-6 space-y-6">
+      <div class="flex items-center justify-between pb-3 border-b-2 border-[#111111] flex-wrap gap-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 bg-[#111111] text-amber-500 flex items-center justify-center border-2 border-[#111111] shadow-[2px_2px_0px_#111111]">
+            <span class="material-symbols-outlined text-2xl">build_circle</span>
+          </div>
+          <div>
+            <h3 class="font-black text-sm uppercase text-[#111111] flex items-center gap-2">
+              <span>Platform Problem Solver &bull; Autonomous Self-Healing Hub</span>
+            </h3>
+            <p class="text-xs font-mono text-[#111111]/60 mt-0.5">Diagnose, repair orphaned profiles, synchronize credentials, and dispatch global emergency broadcast alerts</p>
+          </div>
+        </div>
+        <span class="px-2.5 py-1 border-2 border-amber-600 bg-amber-50 text-amber-900 font-mono text-[10px] font-bold uppercase tracking-wider">
+          Root Authority Clearance
+        </span>
+      </div>
+
+      <!-- Problem Solver Dual Panels -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Panel 1: Autonomous System Self-Healing -->
+        <div class="p-5 border-2 border-[#111111] bg-white space-y-4">
+          <div class="flex items-center justify-between border-b-2 border-[#111111] pb-2">
+            <h4 class="font-black text-xs uppercase font-mono tracking-wider text-[#111111] flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-sm text-emerald-700">health_and_safety</span>
+              <span>1-Click Platform Integrity Self-Healing</span>
+            </h4>
+            <span class="text-[9px] font-mono font-bold text-gray-500 uppercase">Automated Diagnostics</span>
+          </div>
+          
+          <p class="text-xs text-[#111111]/70 font-sans leading-relaxed">
+            Scans the entire database to detect and repair incomplete accounts: provisions missing <code class="font-mono text-[#E11D2E]">PatientProfile</code>, generates valid cryptographic QR tokens, creates <code class="font-mono text-[#E11D2E]">CrewProfile</code> &amp; <code class="font-mono text-[#E11D2E]">DoctorProfile</code>, synchronizes <code class="font-mono text-[#E11D2E]">UserSecurity</code> credentials, and auto-resolves stale SOS beacons older than 24h.
+          </p>
+
+          <button id="btnRunSystemRepair" onclick="adminRunSystemRepair()" class="btn-primary w-full py-3 text-xs uppercase font-mono font-bold tracking-wider flex items-center justify-center gap-2 shadow-[3px_3px_0px_#111111]">
+            <span class="material-symbols-outlined text-base">auto_fix_high</span>
+            <span>Run Full System Self-Healing Diagnostics</span>
+          </button>
+
+          <!-- Repair Console Output Log -->
+          <div class="p-3 border-2 border-[#111111] bg-[#111111] text-emerald-400 font-mono text-[11px] min-h-[140px] max-h-[220px] overflow-y-auto space-y-1" id="systemRepairConsole">
+            <p class="text-gray-400">&gt; System Diagnostic Engine initialized.</p>
+            <p class="text-gray-400">&gt; Standing by. Tap "Run Full System Self-Healing" to execute repair pass.</p>
+          </div>
+        </div>
+
+        <!-- Panel 2: Live Platform Emergency Broadcast Alert -->
+        <div class="p-5 border-2 border-[#111111] bg-white space-y-4">
+          <div class="flex items-center justify-between border-b-2 border-[#111111] pb-2">
+            <h4 class="font-black text-xs uppercase font-mono tracking-wider text-[#111111] flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-sm text-[#E11D2E]">campaign</span>
+              <span>Platform-Wide Emergency Broadcast Engine</span>
+            </h4>
+            <span class="text-[9px] font-mono font-bold text-gray-500 uppercase">Socket.IO Live Mesh</span>
+          </div>
+
+          <form id="adminBroadcastForm" onsubmit="adminSendBroadcast(event)" class="space-y-3 font-mono text-xs">
+            <div>
+              <label class="block text-[10px] font-bold uppercase mb-1">Broadcast Alert Title *</label>
+              <input type="text" id="broadcastTitle" required placeholder="e.g. Critical Weather & Trauma Diversion Alert" class="w-full p-2.5 text-xs font-bold border-2 border-[#111111]">
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[10px] font-bold uppercase mb-1">Target Audience</label>
+                <select id="broadcastTarget" class="w-full p-2 text-xs font-bold border-2 border-[#111111]">
+                  <option value="all">All Platform Users (Global)</option>
+                  <option value="crew">Ambulance Responders Only</option>
+                  <option value="doctor">Doctors &amp; Clinical Staff Only</option>
+                  <option value="patient">Registered Patients Only</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold uppercase mb-1">Priority Style</label>
+                <select id="broadcastPriority" class="w-full p-2 text-xs font-bold border-2 border-[#111111]">
+                  <option value="emergency">🚨 Emergency Siren Flash (Red)</option>
+                  <option value="warning">⚠️ High Caution (Amber)</option>
+                  <option value="info">ℹ️ Operational Notice (Blue)</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold uppercase mb-1">Broadcast Message Body *</label>
+              <textarea id="broadcastMessage" required rows="3" placeholder="Type platform-wide message to blast across active sessions..." class="w-full p-2 text-xs font-sans border-2 border-[#111111]"></textarea>
+            </div>
+
+            <button type="submit" id="btnSendBroadcast" class="btn-danger w-full py-2.5 text-xs uppercase font-mono font-bold tracking-wider flex items-center justify-center gap-2 shadow-[2px_2px_0px_#111111]">
+              <span class="material-symbols-outlined text-base">send</span>
+              <span>Blast Real-Time Announcement</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Panel 3: AI Problem Diagnosis & Step-by-Step Resolution Studio (Full Width) -->
+        <div class="p-5 border-2 border-[#111111] bg-white space-y-4 lg:col-span-2 shadow-[4px_4px_0px_#111111]">
+          <div class="flex items-center justify-between border-b-2 border-[#111111] pb-2 flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <span class="w-8 h-8 bg-[#111111] text-[#E11D2E] flex items-center justify-center font-black">
+                <span class="material-symbols-outlined text-lg">psychology</span>
+              </span>
+              <div>
+                <h4 class="font-black text-xs uppercase font-mono tracking-wider text-[#111111] flex items-center gap-2">
+                  <span>AI Problem Diagnosis &amp; Step-by-Step Solver Studio</span>
+                  <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-mono font-bold uppercase border border-emerald-400">GOD MODE ACTIVE</span>
+                </h4>
+                <p class="text-[10px] font-mono text-gray-500">Autonomous issue comprehension, root-cause diagnostics &amp; plain-language instructions</p>
+              </div>
+            </div>
+            <span class="text-[9px] font-mono font-bold text-gray-500 uppercase">Interactive AI Engine</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Left: Problem Input / Selection -->
+            <div class="space-y-3 font-mono text-xs">
+              <div>
+                <label class="block text-[10px] font-bold uppercase mb-1">Select Open Problem / Ticket (Optional)</label>
+                <select id="godModeProblemSelect" onchange="handleGodModeProblemSelectChange(this.value)" class="w-full p-2.5 text-xs font-bold border-2 border-[#111111] bg-[#f9fafb]">
+                  <option value="">-- Choose Open Ticket or Enter Custom Issue --</option>
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-bold uppercase mb-1">Problem Subject / Title *</label>
+                <input type="text" id="godModeProblemSubject" placeholder="e.g. Offline Emergency Epinephrine Dosing Override" class="w-full p-2.5 text-xs font-bold border-2 border-[#111111]">
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-bold uppercase mb-1">Detailed Problem Description *</label>
+                <textarea id="godModeProblemMessage" rows="3" placeholder="Describe the issue, clinical presentation, or error message in detail..." class="w-full p-2.5 text-xs font-sans border-2 border-[#111111]"></textarea>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[10px] font-bold uppercase mb-1">Role Context</label>
+                  <select id="godModeProblemRole" class="w-full p-2 text-xs font-bold border-2 border-[#111111]">
+                    <option value="doctor">Doctor / Clinic</option>
+                    <option value="crew">Ambulance Crew</option>
+                    <option value="patient">Patient</option>
+                    <option value="hospital">Hospital Staff</option>
+                    <option value="admin">Administrator</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold uppercase mb-1">Patient QR (Optional)</label>
+                  <input type="text" id="godModeProblemQr" placeholder="e.g. RAH-D3200470" class="w-full p-2 text-xs font-mono font-bold border-2 border-[#111111] uppercase">
+                </div>
+              </div>
+
+              <button type="button" id="btnGodModeAnalyze" onclick="runGodModeAiAnalysis()" class="btn-primary w-full py-2.5 text-xs uppercase font-mono font-black tracking-wider flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_#111111] bg-[#111111] hover:bg-[#E11D2E] text-white transition">
+                <span class="material-symbols-outlined text-sm text-yellow-300">auto_awesome</span>
+                <span>Analyze &amp; Solve with AI</span>
+              </button>
+            </div>
+
+            <!-- Right: AI Step-by-Step Breakdown Output -->
+            <div class="md:col-span-2 border-2 border-[#111111] bg-[#f9fafb] p-4 space-y-3 font-sans text-xs">
+              <div id="godModeAiPlaceholder" class="h-full min-h-[220px] flex flex-col items-center justify-center text-center text-gray-500 font-mono space-y-2 p-6">
+                <span class="material-symbols-outlined text-4xl text-gray-400">psychology_alt</span>
+                <p class="font-bold text-xs text-gray-700">AI Problem Diagnostics Engine Standing By</p>
+                <p class="text-[11px] text-gray-500 max-w-md">Select an open ticket or type any issue on the left, then click <strong>"Analyze &amp; Solve with AI"</strong> to receive a plain-language diagnosis and step-by-step instructions.</p>
+              </div>
+
+              <div id="godModeAiResults" class="hidden space-y-3">
+                <!-- 1. Simple Words Callout -->
+                <div class="p-3 bg-red-50 border-2 border-[#E11D2E] text-[#111111] space-y-1 shadow-[2px_2px_0px_#E11D2E]">
+                  <span class="font-mono text-[10px] font-black uppercase text-[#E11D2E] flex items-center gap-1">
+                    <span class="material-symbols-outlined text-xs">chat</span>
+                    <span>1. What is the Problem? (In Simple Words)</span>
+                  </span>
+                  <p id="godModeAiSimpleWords" class="text-xs font-semibold leading-relaxed"></p>
+                </div>
+
+                <!-- 2. What Needs to Be Solved & Root Cause -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                  <div class="p-2.5 bg-white border border-[#111111] space-y-1">
+                    <span class="font-mono text-[10px] font-black uppercase text-gray-700 block">2. What Needs to Be Solved:</span>
+                    <p id="godModeAiWhatToSolve" class="text-[11px] leading-relaxed text-gray-900"></p>
+                  </div>
+                  <div class="p-2.5 bg-white border border-[#111111] space-y-1">
+                    <span class="font-mono text-[10px] font-black uppercase text-gray-700 block">Root Cause / Why It Happened:</span>
+                    <p id="godModeAiRootCause" class="text-[11px] leading-relaxed text-gray-900"></p>
+                  </div>
+                </div>
+
+                <!-- 3. Step-by-Step Instructions -->
+                <div class="p-3 bg-white border-2 border-[#111111] space-y-2">
+                  <span class="font-mono text-[10px] font-black uppercase text-[#111111] block">3. Step-by-Step Solution Instructions:</span>
+                  <div id="godModeAiSteps" class="space-y-1.5 pt-1"></div>
+                </div>
+
+                <!-- 4. Ready-to-Use Resolution Note -->
+                <div class="p-3 bg-emerald-50 border-2 border-emerald-600 space-y-1.5">
+                  <span class="font-mono text-[10px] font-black uppercase text-emerald-900 block">4. Pre-Drafted Resolution Note:</span>
+                  <p id="godModeAiNote" class="text-[11px] font-mono text-emerald-950 bg-white/80 p-2 border border-emerald-300 leading-relaxed"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -596,6 +963,218 @@
 
   </main>
 
+  <!-- God-Mode: Create New User Modal (All Roles) -->
+  <div id="adminCreateUserModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto no-print">
+    <div class="bg-white border-2 border-[#111111] shadow-[8px_8px_0px_#111111] max-w-2xl w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] overflow-y-auto">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b-2 border-[#111111] flex-wrap gap-2">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-[#E11D2E] text-white flex items-center justify-center border-2 border-[#111111] font-bold shadow-[2px_2px_0px_#111111]">
+            <span class="material-symbols-outlined text-2xl">person_add</span>
+          </div>
+          <div>
+            <h3 class="font-black text-base uppercase tracking-tight text-[#111111]">Create Platform User &bull; God-Mode Provisioning</h3>
+            <p class="text-xs font-mono text-[#111111]/60">Provision Patient, Doctor, Ambulance Crew, Hospital, or Administrator with instant credentials</p>
+          </div>
+        </div>
+        <button onclick="closeCreateUserModal()" class="p-1 text-[#111111] hover:bg-gray-100 transition" title="Close">
+          <span class="material-symbols-outlined text-2xl">close</span>
+        </button>
+      </div>
+
+      <!-- Form -->
+      <form id="adminCreateUserForm" onsubmit="handleAdminCreateUserSubmit(event)" class="space-y-4 font-sans text-xs">
+        
+        <!-- System Role Selector Strip -->
+        <div class="p-3 border-2 border-[#111111] bg-[#f9fafb] space-y-2">
+          <label class="block font-mono text-[10px] font-bold uppercase text-[#111111]">Select Target System Role *</label>
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 font-mono font-bold text-xs uppercase">
+            <button type="button" onclick="selectCreateUserRole('patient')" id="createRoleBtn_patient" class="p-2 border-2 border-[#111111] bg-[#111111] text-white text-center transition">
+              Patient
+            </button>
+            <button type="button" onclick="selectCreateUserRole('doctor')" id="createRoleBtn_doctor" class="p-2 border-2 border-[#111111] bg-white text-[#111111] hover:bg-gray-100 text-center transition">
+              Doctor
+            </button>
+            <button type="button" onclick="selectCreateUserRole('crew')" id="createRoleBtn_crew" class="p-2 border-2 border-[#111111] bg-white text-[#111111] hover:bg-gray-100 text-center transition">
+              Crew (EMS)
+            </button>
+            <button type="button" onclick="selectCreateUserRole('hospital')" id="createRoleBtn_hospital" class="p-2 border-2 border-[#111111] bg-white text-[#111111] hover:bg-gray-100 text-center transition">
+              Hospital
+            </button>
+            <button type="button" onclick="selectCreateUserRole('admin')" id="createRoleBtn_admin" class="p-2 border-2 border-[#111111] bg-white text-[#111111] hover:bg-gray-100 text-center transition">
+              Admin
+            </button>
+          </div>
+          <input type="hidden" id="createTargetRole" value="patient">
+        </div>
+
+        <!-- Core User Details -->
+        <div class="border-2 border-[#111111] p-4 bg-white space-y-3">
+          <h4 class="font-mono text-[10px] font-bold uppercase tracking-wider text-gray-500 border-b pb-1">Primary Login Credentials</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Full Legal Name *</label>
+              <input type="text" id="createUserName" required placeholder="e.g. John Doe" class="w-full p-2.5 text-xs font-bold border-2 border-[#111111]">
+            </div>
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Email Address *</label>
+              <input type="email" id="createUserEmail" required placeholder="user@lifeqr.com" class="w-full p-2.5 text-xs font-mono border-2 border-[#111111]">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Initial Password *</label>
+              <input type="text" id="createUserPassword" required value="Password@123" class="w-full p-2.5 text-xs font-mono border-2 border-[#111111]">
+            </div>
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Phone Number</label>
+              <input type="tel" id="createUserPhone" placeholder="+91 9876543210" class="w-full p-2.5 text-xs font-mono border-2 border-[#111111]">
+            </div>
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Gender *</label>
+              <select id="createUserGender" class="w-full p-2.5 text-xs font-bold border-2 border-[#111111]">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Address / Street</label>
+              <input type="text" id="createUserAddress" placeholder="Street Address" class="w-full p-2 text-xs border-2 border-[#111111]">
+            </div>
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">City</label>
+              <input type="text" id="createUserCity" placeholder="City" class="w-full p-2 text-xs border-2 border-[#111111]">
+            </div>
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">State</label>
+              <input type="text" id="createUserState" placeholder="State" class="w-full p-2 text-xs border-2 border-[#111111]">
+            </div>
+          </div>
+        </div>
+
+        <!-- Role-Specific Parameters -->
+        <div id="createRoleFields_patient" class="border-2 border-[#111111] p-4 bg-white space-y-3">
+          <h4 class="font-mono text-[10px] font-bold uppercase tracking-wider text-[#E11D2E] border-b pb-1">Patient Clinical &amp; Emergency Parameters</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Blood Group</label>
+              <select id="createPatientBloodGroup" class="w-full p-2.5 text-xs font-mono font-bold border-2 border-[#111111]">
+                <option value="O+">O Positive (O+)</option>
+                <option value="O-">O Negative (O-)</option>
+                <option value="A+">A Positive (A+)</option>
+                <option value="A-">A Negative (A-)</option>
+                <option value="B+">B Positive (B+)</option>
+                <option value="B-">B Negative (B-)</option>
+                <option value="AB+">AB Positive (AB+)</option>
+                <option value="AB-">AB Negative (AB-)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Age</label>
+              <input type="number" id="createPatientAge" placeholder="e.g. 35" class="w-full p-2.5 text-xs font-mono border-2 border-[#111111]">
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Severe Allergies</label>
+              <input type="text" id="createPatientAllergies" placeholder="e.g. Penicillin, Peanuts" class="w-full p-2 text-xs border-2 border-[#111111]">
+            </div>
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Chronic Conditions</label>
+              <input type="text" id="createPatientHealthIssues" placeholder="e.g. Type-2 Diabetes, Hypertension" class="w-full p-2 text-xs border-2 border-[#111111]">
+            </div>
+          </div>
+          <div>
+            <label class="block font-mono text-[10px] font-bold uppercase mb-1">Active Medications</label>
+            <input type="text" id="createPatientMedications" placeholder="e.g. Metformin 500mg, Albuterol Inhaler" class="w-full p-2 text-xs border-2 border-[#111111]">
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Emergency Contact Name</label>
+              <input type="text" id="createPatientEmergencyName" placeholder="e.g. Sarah Smith" class="w-full p-2 text-xs border-2 border-[#111111]">
+            </div>
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Emergency Contact Phone</label>
+              <input type="tel" id="createPatientEmergencyPhone" placeholder="+91 9876543211" class="w-full p-2 text-xs font-mono border-2 border-[#111111]">
+            </div>
+          </div>
+        </div>
+
+        <div id="createRoleFields_doctor" class="hidden border-2 border-[#111111] p-4 bg-white space-y-3">
+          <h4 class="font-mono text-[10px] font-bold uppercase tracking-wider text-blue-800 border-b pb-1">Doctor Credentials &amp; Registry</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Specialization *</label>
+              <input type="text" id="createDoctorSpecialty" placeholder="e.g. Emergency & Critical Care" class="w-full p-2.5 text-xs font-bold border-2 border-[#111111]">
+            </div>
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Medical License Number *</label>
+              <input type="text" id="createDoctorLicense" placeholder="e.g. MCI-2024-8849" class="w-full p-2.5 text-xs font-mono border-2 border-[#111111]">
+            </div>
+          </div>
+          <div>
+            <label class="block font-mono text-[10px] font-bold uppercase mb-1">Hospital / Clinic Affiliation *</label>
+            <input type="text" id="createDoctorHospital" placeholder="e.g. City Central Trauma Hospital" class="w-full p-2 text-xs border-2 border-[#111111]">
+          </div>
+        </div>
+
+        <div id="createRoleFields_crew" class="hidden border-2 border-[#111111] p-4 bg-white space-y-3">
+          <h4 class="font-mono text-[10px] font-bold uppercase tracking-wider text-[#E11D2E] border-b pb-1">Ambulance Unit &amp; Fleet Details</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Vehicle Unit Number *</label>
+              <input type="text" id="createCrewVehicle" placeholder="e.g. KA-01-EQ-9110" class="w-full p-2.5 text-xs font-mono font-bold border-2 border-[#111111]">
+            </div>
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Base Station *</label>
+              <input type="text" id="createCrewStation" placeholder="e.g. Station 12 — Central Trauma Sub-station" class="w-full p-2.5 text-xs border-2 border-[#111111]">
+            </div>
+          </div>
+          <div>
+            <label class="block font-mono text-[10px] font-bold uppercase mb-1">Initial Duty Status</label>
+            <select id="createCrewDutyStatus" class="w-full p-2 text-xs font-mono font-bold border-2 border-[#111111]">
+              <option value="on_duty">ON-DUTY (Active On Tactical Radar)</option>
+              <option value="off_duty">OFF-DUTY (Standby / Alarms Muted)</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="createRoleFields_hospital" class="hidden border-2 border-[#111111] p-4 bg-white space-y-3">
+          <h4 class="font-mono text-[10px] font-bold uppercase tracking-wider text-purple-800 border-b pb-1">Hospital Staff Facility Data</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Hospital Name *</label>
+              <input type="text" id="createHospName" placeholder="e.g. Metro Trauma Center" class="w-full p-2.5 text-xs font-bold border-2 border-[#111111]">
+            </div>
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">Department</label>
+              <input type="text" id="createHospDept" placeholder="e.g. ER & Triage Directorate" class="w-full p-2.5 text-xs border-2 border-[#111111]">
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="flex items-center justify-end gap-3 pt-3 border-t-2 border-[#111111] font-mono text-xs">
+          <button type="button" onclick="closeCreateUserModal()" class="btn-secondary px-4 py-2 uppercase font-bold">
+            Cancel
+          </button>
+          <button type="submit" id="btnSubmitCreateUser" class="btn-primary px-6 py-2.5 uppercase font-bold tracking-wider flex items-center gap-2 shadow-[2px_2px_0px_#111111]">
+            <span class="material-symbols-outlined text-sm">person_add</span>
+            <span>Create User &amp; Provision Profile</span>
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
   <!-- AI Credential Inspection Modal -->
   <div id="aiInspectionModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto no-print">
     <div class="bg-white border-2 border-[#111111] shadow-[8px_8px_0px_#111111] max-w-xl w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
@@ -729,6 +1308,94 @@
         </div>
       </div>
 
+      <!-- AI Problem Diagnosis & Step-by-Step Resolution Assistant -->
+      <div id="adminModalAiSection" class="p-4 border-2 border-[#111111] bg-gradient-to-br from-red-50/50 via-white to-gray-50 space-y-3 font-sans shadow-[4px_4px_0px_#111111]">
+        <div class="flex items-center justify-between flex-wrap gap-2 pb-2 border-b-2 border-[#111111]">
+          <div class="flex items-center gap-2">
+            <span class="w-7 h-7 bg-[#E11D2E] text-white flex items-center justify-center font-black text-sm shadow-[1px_1px_0px_#111111]">
+              <span class="material-symbols-outlined text-base">psychology</span>
+            </span>
+            <div>
+              <h4 class="font-black text-xs uppercase tracking-wider text-[#111111] flex items-center gap-1.5">
+                <span>AI Problem Diagnosis &amp; Step-by-Step Resolution</span>
+                <span id="adminAiLiveBadge" class="px-1.5 py-0.2 bg-emerald-100 text-emerald-800 text-[9px] font-mono font-bold uppercase border border-emerald-400">READY</span>
+              </h4>
+              <p class="text-[10px] font-mono text-gray-500">Plain-language problem explanation, root cause &amp; step-by-step guidance</p>
+            </div>
+          </div>
+          <button type="button" id="adminModalAiAnalyzeBtn" onclick="runTicketAiAnalysis()" class="btn-primary text-[11px] px-3.5 py-1.5 uppercase font-mono font-black tracking-wider flex items-center gap-1.5 shadow-[2px_2px_0px_#111111] bg-[#111111] hover:bg-[#E11D2E] text-white transition">
+            <span class="material-symbols-outlined text-sm text-yellow-300">auto_awesome</span>
+            <span>Analyze Problem with AI</span>
+          </button>
+        </div>
+
+        <!-- AI Output Container -->
+        <div id="adminModalAiContent" class="space-y-3 text-xs">
+          <div id="adminModalAiPlaceholder" class="p-4 text-center border border-dashed border-gray-300 bg-white/70 text-gray-500 font-mono text-[11px]">
+            <span class="material-symbols-outlined text-2xl text-gray-400 block mb-1">smart_toy</span>
+            Click <strong class="text-[#111111]">"Analyze Problem with AI"</strong> to get a simple-words explanation of what is happening, what needs to be solved, and exact step-by-step instructions.
+          </div>
+
+          <div id="adminModalAiResults" class="hidden space-y-3">
+            <!-- 1. What is the Problem in Simple Words -->
+            <div class="p-3 bg-red-50/80 border-2 border-[#E11D2E] text-[#111111] space-y-1.5 shadow-[2px_2px_0px_#E11D2E]">
+              <div class="flex items-center gap-1.5 font-mono text-[10px] font-black uppercase text-[#E11D2E]">
+                <span class="material-symbols-outlined text-sm">chat</span>
+                <span>1. What is the Problem? (In Simple Words)</span>
+              </div>
+              <p id="adminAiSimpleWords" class="text-xs font-sans leading-relaxed text-[#111111] font-semibold"></p>
+            </div>
+
+            <!-- 2. What Needs to Be Solved & Root Cause -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+              <div class="p-3 bg-white border-2 border-[#111111] space-y-1">
+                <span class="block font-mono text-[10px] font-black uppercase text-gray-800 flex items-center gap-1">
+                  <span class="material-symbols-outlined text-xs text-[#E11D2E]">target</span>
+                  <span>2. What Needs to Be Solved:</span>
+                </span>
+                <p id="adminAiWhatToSolve" class="text-[11px] leading-relaxed text-gray-900 font-medium"></p>
+              </div>
+              <div class="p-3 bg-white border-2 border-[#111111] space-y-1">
+                <span class="block font-mono text-[10px] font-black uppercase text-gray-800 flex items-center gap-1">
+                  <span class="material-symbols-outlined text-xs text-amber-600">help_center</span>
+                  <span>Root Cause / Why It Happened:</span>
+                </span>
+                <p id="adminAiRootCause" class="text-[11px] leading-relaxed text-gray-900 font-medium"></p>
+              </div>
+            </div>
+
+            <!-- 3. Step-by-Step Instructions -->
+            <div class="p-3 bg-white border-2 border-[#111111] space-y-2">
+              <div class="flex items-center justify-between font-mono text-[10px] font-black uppercase text-[#111111]">
+                <span class="flex items-center gap-1">
+                  <span class="material-symbols-outlined text-xs text-[#E11D2E]">format_list_numbered</span>
+                  <span>3. Step-by-Step Solution Instructions:</span>
+                </span>
+                <span id="adminAiUrgencyBadge" class="px-2 py-0.5 bg-red-100 text-[#E11D2E] text-[9px] font-mono font-bold uppercase border border-red-300">CRITICAL</span>
+              </div>
+              <div id="adminAiStepList" class="space-y-2 pt-1 font-sans">
+                <!-- Dynamically populated steps -->
+              </div>
+            </div>
+
+            <!-- 4. Suggested Resolution Note & 1-Click Action -->
+            <div class="p-3 bg-emerald-50/90 border-2 border-emerald-600 space-y-2">
+              <div class="flex items-center justify-between flex-wrap gap-1">
+                <span class="font-mono text-[10px] font-black uppercase text-emerald-900 flex items-center gap-1">
+                  <span class="material-symbols-outlined text-xs text-emerald-600">auto_awesome</span>
+                  <span>4. Ready-to-Use Resolution Note:</span>
+                </span>
+                <button type="button" onclick="applyAiResolutionNote()" class="btn-primary text-[10px] px-3 py-1 uppercase font-mono font-bold tracking-wider flex items-center gap-1 bg-emerald-700 hover:bg-emerald-800 text-white shadow-[1px_1px_0px_#111111]">
+                  <span class="material-symbols-outlined text-xs">content_paste</span>
+                  <span>✨ 1-Click Insert Into Response Box</span>
+                </button>
+              </div>
+              <p id="adminAiSuggestedNote" class="text-[11px] font-mono text-emerald-950 bg-white/90 p-2.5 border border-emerald-400 leading-relaxed"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Resolution Response Form -->
       <form id="adminTicketResolutionForm" onsubmit="handleAdminTicketSubmit(event)" class="space-y-4 font-sans text-xs">
         <input type="hidden" id="adminModalHiddenTicketId">
@@ -829,13 +1496,23 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
             <div>
               <label class="block font-mono text-[10px] font-bold uppercase mb-1">Gender</label>
               <select id="adminProfGender" class="w-full p-2.5 text-xs font-bold border-2 border-[#111111]">
                 <option value="male">Male</option>
                 <option value="female">Female</option>
                 <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-mono text-[10px] font-bold uppercase mb-1">System Role (God-Mode)</label>
+              <select id="adminProfRole" class="w-full p-2.5 text-xs font-bold border-2 border-[#111111] bg-amber-50 text-[#111111]">
+                <option value="patient">Patient</option>
+                <option value="doctor">Doctor</option>
+                <option value="crew">Ambulance Crew</option>
+                <option value="hospital">Hospital Staff</option>
+                <option value="admin">Administrator</option>
               </select>
             </div>
             <div>
@@ -927,9 +1604,12 @@
           </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex items-center justify-between pt-2 border-t-2 border-[#111111] font-mono text-xs flex-wrap gap-2">
-          <span class="text-[10px] text-gray-500">All modifications are logged to immutable security audit trail.</span>
+        <!-- Action Buttons with God-Mode Delete & Save -->
+        <div class="flex items-center justify-between pt-3 border-t-2 border-[#111111] font-mono text-xs flex-wrap gap-2">
+          <button type="button" id="adminProfDeleteBtn" onclick="adminDeleteUserFromModal()" class="btn-danger px-4 py-2 uppercase font-bold tracking-wider flex items-center gap-1.5 shadow-[2px_2px_0px_#111111]" title="God Mode: Permanently delete this user and all medical records">
+            <span class="material-symbols-outlined text-sm">delete_forever</span>
+            <span>Purge User Account</span>
+          </button>
           <div class="flex gap-2">
             <button type="button" onclick="closeAdminUserProfile()" class="btn-secondary px-4 py-2 uppercase font-bold">
               Cancel
@@ -942,6 +1622,9 @@
         </div>
 
       </form>
+
+    </div>
+  </div>
 
   <!-- Emergency Medical View Simulator & Live Preview Modal -->
   <div id="adminEmergencyPreviewModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto no-print">

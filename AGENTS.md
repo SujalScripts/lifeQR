@@ -45,6 +45,18 @@ Before executing any research, modification, or code generation:
    - Patient SOS triggers broadcast immediately over Socket.IO to room
      `crew:all` and update individual room `patient:<id>`.
 
-4. **Post-Task Requirement (Memory Update)**:
+4. **Zero Demo Features Policy (Strict Real-World Production Standard)**:
+   - Absolutely **NO demo features**, fake mockups, superficial stubs, or bypass demo buttons.
+   - Every capability must be genuine, fully functional, production-grade, and backed by authentic backend routes, validated database models, and real workflows.
+   - Never implement or maintain fake demo bypasses, mock data shortcuts, or dummy buttons in UI or backend logic.
+
+5. **Post-Task Requirement (Memory Update)**:
    - When completing significant architecture changes, pattern additions, or bug
      fixes, update `brain/` files via the **Memory Agent** workflow.
+
+6. **Distinct App vs Website View UI/UX (No Auto-Syncing)**:
+   - `app/` and `website/` share the same backend and data models, but their user interfaces, form factors, and UI/UX are intentionally different (mobile app view with phone chassis, bottom navigation bar, sidebar drawer vs desktop website portal).
+   - Some features exist specifically in `app/` and not in `website/` (or vice versa).
+   - NEVER continuously or automatically sync whole HTML views, templates, or distinct scripts between directories.
+   - Background file watchers and auto-sync on server boot are strictly disabled. Only shared theme tokens, stylesheets, and brand assets may be manually copied when explicitly needed.
+

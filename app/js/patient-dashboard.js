@@ -59,10 +59,21 @@ function initSocketConnection() {
       ? window.API_URL.replace(/\/api\/v1\/?$/, '')
       : window.location.origin;
     const socket = io(socketUrl, { withCredentials: true });
+
+    socket.on('connect', () => {
+      console.log('🔌 Patient socket connected:', socket.id);
+    });
     
+    // Real-time Ambulance Dispatch Accepted Alert
+    socket.on('sos-dispatch-accepted', (data) => {
+      console.log('🚨 Received sos-dispatch-accepted notification:', data);
+      handleSosDispatchAccepted(data);
+    });
+
     // Listen for authorized doctor accesses or SOS status updates
     socket.on('sos-acknowledged', (data) => {
-      showToast(`Emergency crew (${data.responderName}) acknowledged your SOS alert!`, 'info');
+      console.log('🚨 Received sos-acknowledged notification:', data);
+      showToast(`Emergency crew (${data.responderName || 'Ambulance Responder'}) acknowledged your SOS alert!`, 'info', 8000);
       loadDashboardData();
     });
 
@@ -75,6 +86,90 @@ function initSocketConnection() {
     console.warn('Socket.IO connection failed. Offline notifications unavailable.');
   }
 }
+
+function playRescueChime() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 (Resonant rescue chime)
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.12);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime + idx * 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.12 + 0.65);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + idx * 0.12);
+      osc.stop(ctx.currentTime + idx * 0.12 + 0.65);
+    });
+  } catch (e) {
+    // Non-blocking
+  }
+}
+
+function handleSosDispatchAccepted(data) {
+  playRescueChime();
+
+  const crewName = data.crewName || 'Paramedic Unit';
+  const crewPhone = data.crewPhone || '+91 98201 10800';
+  const vehicle = data.vehicleNumber || 'AMB-UNIT-108';
+  const station = data.station || 'Central Emergency Station';
+  const eta = data.etaMinutes || 4;
+
+  const setTxt = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+
+  // 1. Populate Modal
+  setTxt('dispatchedCrewName', crewName);
+  setTxt('dispatchedCrewPhone', crewPhone);
+  setTxt('dispatchedVehicleNumber', vehicle);
+  setTxt('dispatchedStation', station);
+  setTxt('dispatchedEta', `~${eta} MINS`);
+
+  const callBtn = document.getElementById('callCrewBtn');
+  if (callBtn) {
+    callBtn.href = `tel:${crewPhone.replace(/\s+/g, '')}`;
+  }
+
+  const modal = document.getElementById('sosDispatchedModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+  }
+
+  // 2. Populate Persistent Top Banner
+  setTxt('bannerCrewName', crewName);
+  setTxt('bannerCrewPhone', crewPhone);
+  setTxt('bannerVehicleNumber', vehicle);
+  setTxt('bannerEta', `~${eta} Mins`);
+
+  const bannerCallBtn = document.getElementById('bannerCallBtn');
+  if (bannerCallBtn) {
+    bannerCallBtn.href = `tel:${crewPhone.replace(/\s+/g, '')}`;
+  }
+
+  const banner = document.getElementById('sosDispatchedTopBanner');
+  if (banner) {
+    banner.classList.remove('hidden');
+  }
+
+  showToast(`🚨 AMBULANCE DISPATCHED: Paramedic ${crewName} (${crewPhone}) is en route to your location!`, 'emergency', 12000);
+  loadDashboardData();
+}
+
+window.closeSosDispatchedModal = function() {
+  const modal = document.getElementById('sosDispatchedModal');
+  if (modal) modal.classList.add('hidden');
+};
+
+window.reopenSosDispatchedModal = function() {
+  const modal = document.getElementById('sosDispatchedModal');
+  if (modal) modal.classList.remove('hidden');
+};
 
 async function loadDashboardData() {
   showSkeletons();
@@ -96,6 +191,30 @@ async function loadDashboardData() {
     await loadActivities();
     await loadDoctorHistory();
     await loadMedicalHistory();
+
+    // Check for active dispatched SOS in profile to restore top banner on reload
+    if (currentProfile && currentProfile.sosAlerts && currentProfile.sosAlerts.length > 0) {
+      const activeDispatched = currentProfile.sosAlerts.find(a => a.status === 'dispatched' && a.acknowledgedBy);
+      if (activeDispatched && activeDispatched.acknowledgedBy) {
+        const ack = activeDispatched.acknowledgedBy;
+        const banner = document.getElementById('sosDispatchedTopBanner');
+        if (banner) {
+          const setTxt = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+          };
+          setTxt('bannerCrewName', ack.name || 'Paramedic Unit');
+          setTxt('bannerCrewPhone', ack.phone || '+91 98201 10800');
+          setTxt('bannerVehicleNumber', ack.vehicleNumber || 'AMB-UNIT-108');
+          setTxt('bannerEta', 'Unit En Route');
+          const callBtn = document.getElementById('bannerCallBtn');
+          if (callBtn && ack.phone) {
+            callBtn.href = `tel:${ack.phone.replace(/\s+/g, '')}`;
+          }
+          banner.classList.remove('hidden');
+        }
+      }
+    }
 
   } catch (err) {
     console.error('loadDashboardData error:', err);
@@ -804,8 +923,10 @@ async function loadMedicalHistory() {
       }
 
       const authorRole = h.author ? h.author.role : 'patient';
-      const authorName = h.author ? h.author.name : 'Self';
-      const dateStr = new Date(h.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const rawDate = h.timestamp || h.date || h.createdAt;
+      const dateStr = rawDate && !isNaN(new Date(rawDate).getTime()) 
+        ? new Date(rawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
+        : 'Recent';
 
       item.innerHTML = `
         <!-- Vertical connecting line -->

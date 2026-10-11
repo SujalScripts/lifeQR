@@ -23,6 +23,16 @@ const crewProfileSchema = new mongoose.Schema({
   organization: {
     type: String,
     default: ''
+  },
+  currentLocation: {
+    lat: Number,
+    lng: Number,
+    updatedAt: Date
+  },
+  status: {
+    type: String,
+    enum: ['available', 'on_duty', 'dispatched', 'en_route', 'at_scene', 'transporting', 'off_duty'],
+    default: 'on_duty'
   }
 }, {
   timestamps: true

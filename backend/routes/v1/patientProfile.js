@@ -230,9 +230,18 @@ router.post('/log-scan/:qrCodeId', async (req, res) => {
     const { qrCodeId } = req.params;
     const profile = await resolvePatientProfile(qrCodeId);
     if (profile) {
-      logEvent('PATIENT_QR_LOGGED_SCAN', { qrCodeId: profile.qrCodeId, patientId: profile.userId });
+      const { lat, lng } = req.body || {};
+      if (typeof lat === 'number' && typeof lng === 'number' && (lat !== 0 || lng !== 0)) {
+        profile.lastLocation = {
+          lat,
+          lng,
+          updatedAt: new Date()
+        };
+        await profile.save();
+      }
+      logEvent('PATIENT_QR_LOGGED_SCAN', { qrCodeId: profile.qrCodeId, patientId: profile.userId, lat, lng });
     }
-    res.json({ message: 'Scan logged successfully' });
+    res.json({ message: 'Scan logged successfully', lastLocation: profile?.lastLocation });
   } catch (err) {
     res.status(500).json({ error: 'Failed to log scan event' });
   }

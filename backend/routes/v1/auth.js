@@ -8,6 +8,7 @@ const UserSecurity = require('../../models/UserSecurity');
 const PatientProfile = require('../../models/PatientProfile');
 const DoctorProfile = require('../../models/DoctorProfile');
 const CrewProfile = require('../../models/CrewProfile');
+const HospitalProfile = require('../../models/HospitalProfile');
 const EmergencyCredential = require('../../models/EmergencyCredential');
 const { getFrontendUrl } = require('../../utils/frontendUrl');
 const { sendEmail } = require('../../services/emailService');
@@ -97,7 +98,7 @@ router.post('/register', async (req, res) => {
     }
 
     // Role verification
-    if (!['patient', 'doctor', 'crew'].includes(role)) {
+    if (!['patient', 'doctor', 'crew', 'hospital'].includes(role)) {
       return res.status(400).json({ error: 'Invalid user role specified' });
     }
 
@@ -141,7 +142,7 @@ router.post('/register', async (req, res) => {
       address,
       city,
       state,
-      verificationStatus: role === 'patient' ? 'VERIFIED' : 'PENDING'
+      verificationStatus: (role === 'patient' || role === 'hospital') ? 'VERIFIED' : 'PENDING'
     });
 
     // Sync with 'user securities' collection (stores original password)
@@ -236,6 +237,25 @@ router.post('/register', async (req, res) => {
         vehicleNumber,
         crewType,
         station
+      });
+    } else if (role === 'hospital') {
+      const hospitalName = (req.body.hospitalName || hospital || '').trim();
+      const department = (req.body.department || '').trim();
+      const staffRole = (req.body.staffRole || req.body.designation || '').trim();
+      const staffId = (req.body.staffId || req.body.employeeId || '').trim();
+
+      if (!hospitalName || !department || !staffRole) {
+        await User.findByIdAndDelete(user._id);
+        await UserSecurity.findOneAndDelete({ userId: user._id });
+        return res.status(400).json({ error: 'Hospital name, department, and staff role are required for hospital staff' });
+      }
+
+      await HospitalProfile.create({
+        userId: user._id,
+        hospitalName,
+        department,
+        staffRole,
+        staffId
       });
     }
 
@@ -342,6 +362,7 @@ router.post('/login', async (req, res) => {
 
     res.json({ 
       message: 'Login successful',
+      token,
       user: {
         id: user._id,
         name: user.name,
@@ -566,6 +587,7 @@ router.post('/verify-otp', async (req, res) => {
 
     res.json({
       message: 'OTP verified successfully',
+      token,
       isProfileComplete,
       user: {
         id: user._id,
@@ -584,9 +606,18 @@ router.post('/verify-otp', async (req, res) => {
   }
 });
 
-// Logout route
-router.post('/logout', (req, res) => {
-  res.clearCookie('token');
+// Logout route (supports both POST and GET)
+router.all('/logout', (req, res) => {
+  const isProd = process.env.NODE_ENV === 'production';
+  const cookieOptions = {
+    path: '/',
+    httpOnly: true,
+    secure: isProd,
+    sameSite: 'strict'
+  };
+  res.clearCookie('token', cookieOptions);
+  res.clearCookie('token', { path: '/' });
+  res.cookie('token', '', { ...cookieOptions, expires: new Date(0), maxAge: 0 });
   res.json({ message: 'Logged out successfully' });
 });
 

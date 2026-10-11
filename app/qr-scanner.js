@@ -94,10 +94,8 @@ class QRScanner {
             </div>
 
             <div class="flex items-center justify-between pt-2 border-t border-gray-200 text-[10px] text-gray-500">
-              <span>Tip: Drag &amp; drop QR photo directly onto viewfinder</span>
-              <button type="button" id="qrQuickDemoBtn" class="text-[#E11D2E] font-bold hover:underline">
-                Use Demo Patient (RAH-D3200470)
-              </button>
+              <span>Tip: Drag &amp; drop QR badge photo directly onto viewfinder</span>
+              <span class="font-mono text-gray-400">HIGH-PRECISION OPTICAL SCAN</span>
             </div>
           </div>
 
@@ -131,15 +129,6 @@ class QRScanner {
     // Attach button listeners
     modal.querySelector('#qrModalCloseBtn').onclick = () => this.stop();
     modal.querySelector('#qrModalCancelBtn').onclick = () => this.stop();
-
-    // Quick demo button
-    const demoBtn = modal.querySelector('#qrQuickDemoBtn');
-    if (demoBtn) {
-      demoBtn.onclick = () => {
-        this.stop();
-        this.onSuccess('RAH-D3200470');
-      };
-    }
 
     // File input change
     this.fileInputElement.onchange = (e) => this.handleFileUpload(e);

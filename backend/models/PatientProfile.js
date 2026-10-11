@@ -117,7 +117,7 @@ const patientProfileSchema = new mongoose.Schema({
       status: {
         type: String,
         default: 'sent',
-        enum: ['sent', 'acknowledged', 'resolved']
+        enum: ['sent', 'acknowledged', 'dispatched', 'en_route', 'resolved']
       },
       location: {
         lat: Number,
@@ -128,6 +128,9 @@ const patientProfileSchema = new mongoose.Schema({
       acknowledgedBy: {
         userId: mongoose.Schema.Types.ObjectId,
         name: String,
+        phone: String,
+        vehicleNumber: String,
+        station: String,
         timestamp: Date
       },
       createdAt: Date

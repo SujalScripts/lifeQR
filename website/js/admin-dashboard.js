@@ -25,24 +25,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 window.switchTab = function(tab) {
   const usersSec = document.getElementById('sectionUsers');
+  const sosSec = document.getElementById('sectionSosCommand');
+  const fleetSec = document.getElementById('sectionFleetControl');
+  const godSec = document.getElementById('sectionGodMode');
   const verSec = document.getElementById('sectionVerifications');
   const helpSec = document.getElementById('sectionHelpTickets');
   const aiSec = document.getElementById('sectionAiOps');
+
   const usersBtn = document.getElementById('tabUsers');
+  const sosBtn = document.getElementById('tabSosCommand');
+  const fleetBtn = document.getElementById('tabFleetControl');
+  const godBtn = document.getElementById('tabGodMode');
   const verBtn = document.getElementById('tabVerifications');
   const helpBtn = document.getElementById('tabHelpTickets');
   const aiBtn = document.getElementById('tabAiOps');
 
   // Hide all sections
-  if (usersSec) usersSec.classList.add('hidden');
-  if (verSec) verSec.classList.add('hidden');
-  if (helpSec) helpSec.classList.add('hidden');
-  if (aiSec) aiSec.classList.add('hidden');
+  [usersSec, sosSec, fleetSec, godSec, verSec, helpSec, aiSec].forEach(s => {
+    if (s) s.classList.add('hidden');
+  });
 
   const activeClass = 'btn-primary px-5 py-2.5 uppercase tracking-wider font-bold shadow-[2px_2px_0px_#111111]';
   const inactiveClass = 'btn-secondary px-5 py-2.5 uppercase tracking-wider font-bold';
 
   if (usersBtn) usersBtn.className = inactiveClass;
+  if (sosBtn) sosBtn.className = inactiveClass + ' flex items-center gap-1.5 text-[#E11D2E] hover:text-white';
+  if (fleetBtn) fleetBtn.className = inactiveClass + ' flex items-center gap-1.5 text-blue-700 hover:text-white';
+  if (godBtn) godBtn.className = inactiveClass + ' flex items-center gap-1.5 text-amber-700 hover:text-white';
   if (verBtn) verBtn.className = inactiveClass;
   if (helpBtn) helpBtn.className = inactiveClass + ' flex items-center gap-1.5 text-blue-700 hover:text-white';
   if (aiBtn) aiBtn.className = inactiveClass + ' flex items-center gap-1.5 text-[#E11D2E] hover:text-white';
@@ -50,6 +59,17 @@ window.switchTab = function(tab) {
   if (tab === 'users') {
     if (usersSec) usersSec.classList.remove('hidden');
     if (usersBtn) usersBtn.className = activeClass;
+  } else if (tab === 'sosCommand') {
+    if (sosSec) sosSec.classList.remove('hidden');
+    if (sosBtn) sosBtn.className = activeClass + ' flex items-center gap-1.5';
+    loadAdminSosIncidents();
+  } else if (tab === 'fleetControl') {
+    if (fleetSec) fleetSec.classList.remove('hidden');
+    if (fleetBtn) fleetBtn.className = activeClass + ' flex items-center gap-1.5';
+    loadAdminFleet();
+  } else if (tab === 'godMode') {
+    if (godSec) godSec.classList.remove('hidden');
+    if (godBtn) godBtn.className = activeClass + ' flex items-center gap-1.5';
   } else if (tab === 'verifications') {
     if (verSec) verSec.classList.remove('hidden');
     if (verBtn) verBtn.className = activeClass;
@@ -288,6 +308,9 @@ function renderAdminUsersTable() {
             <span>Manage &amp; Fix</span>
           </button>
           ${toggleBtn}
+          <button onclick="adminDeleteUser('${u._id}', '${escapeHtml(u.name)}')" class="btn-secondary px-2 py-1 text-[10px] uppercase font-mono font-bold tracking-wider text-[#E11D2E] hover:bg-red-600 hover:text-white" title="Purge user account (God Mode)">
+            <span class="material-symbols-outlined text-xs">delete</span>
+          </button>
         </div>
       </td>
     `;
@@ -1073,6 +1096,20 @@ function renderAdminTickets() {
     return;
   }
 
+  // Also populate God Mode problem dropdown
+  const probSelect = document.getElementById('godModeProblemSelect');
+  if (probSelect) {
+    const curVal = probSelect.value;
+    probSelect.innerHTML = '<option value="">-- Choose Open Ticket or Enter Custom Issue --</option>';
+    adminTickets.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.ticketId;
+      opt.textContent = `[${t.priority}] ${t.ticketId}: ${t.subject.slice(0, 42)} (${t.requesterRole.toUpperCase()})`;
+      probSelect.appendChild(opt);
+    });
+    if (curVal) probSelect.value = curVal;
+  }
+
   list.forEach(t => {
     const tr = document.createElement('tr');
     tr.className = 'border-b-2 border-[#111111]/10 hover:bg-[#f9fafb] transition font-sans text-xs';
@@ -1117,15 +1154,22 @@ function renderAdminTickets() {
       <td class="p-3 font-mono text-[10px] text-gray-500">${dateStr}</td>
       <td class="p-3 text-right">
         <div class="flex items-center justify-end gap-1.5 font-mono">
-          <button onclick="openAdminTicketModal('${t.ticketId}')" class="btn-primary text-[10px] px-2.5 py-1 uppercase font-bold tracking-wider flex items-center gap-1 shadow-[1px_1px_0px_#111111]">
+          <button onclick="openAdminTicketWithAi('${t.ticketId}')" class="btn-primary text-[10px] px-2.5 py-1 uppercase font-bold tracking-wider flex items-center gap-1 bg-[#111111] hover:bg-[#E11D2E] text-white shadow-[1px_1px_0px_#111111]" title="Analyze Problem with AI &amp; Solve">
+            <span class="material-symbols-outlined text-xs text-yellow-300">auto_awesome</span>
+            <span>AI Solve</span>
+          </button>
+          <button onclick="openAdminTicketModal('${t.ticketId}')" class="btn-primary text-[10px] px-2 py-1 uppercase font-bold tracking-wider flex items-center gap-1 shadow-[1px_1px_0px_#111111]">
             <span class="material-symbols-outlined text-xs">edit_note</span>
-            <span>Review &amp; Reply</span>
+            <span>Review</span>
           </button>
           ${t.status !== 'RESOLVED' ? `
             <button onclick="quickResolveAdminTicket('${t.ticketId}')" class="btn-secondary text-[10px] px-2 py-1 uppercase font-bold tracking-wider text-emerald-800 hover:text-white" title="Quick Resolve">
               ✓
             </button>
           ` : ''}
+          <button onclick="adminDeleteTicket('${t.ticketId || t._id}')" class="btn-secondary text-[10px] px-2 py-1 uppercase font-bold tracking-wider text-[#E11D2E] hover:bg-red-600 hover:text-white" title="Purge ticket">
+            <span class="material-symbols-outlined text-xs">delete</span>
+          </button>
         </div>
       </td>
     `;
@@ -1133,6 +1177,13 @@ function renderAdminTickets() {
     tbody.appendChild(tr);
   });
 }
+
+let currentAiTicketAnalysis = null;
+
+window.openAdminTicketWithAi = async function(ticketId) {
+  openAdminTicketModal(ticketId);
+  await runTicketAiAnalysis();
+};
 
 window.openAdminTicketModal = function(ticketId) {
   const ticket = adminTickets.find(t => t.ticketId === ticketId);
@@ -1180,12 +1231,246 @@ window.openAdminTicketModal = function(ticketId) {
     timeInput.value = new Date(ticket.createdAt).toLocaleString();
   }
 
+  // Reset AI panel state
+  currentAiTicketAnalysis = null;
+  const aiResults = document.getElementById('adminModalAiResults');
+  const aiPlaceholder = document.getElementById('adminModalAiPlaceholder');
+  const aiBadge = document.getElementById('adminAiLiveBadge');
+  const aiBtn = document.getElementById('adminModalAiAnalyzeBtn');
+  if (aiResults) aiResults.classList.add('hidden');
+  if (aiPlaceholder) aiPlaceholder.classList.remove('hidden');
+  if (aiBadge) {
+    aiBadge.className = 'px-1.5 py-0.2 bg-emerald-100 text-emerald-800 text-[9px] font-mono font-bold uppercase border border-emerald-400';
+    aiBadge.textContent = 'READY';
+  }
+  if (aiBtn) {
+    aiBtn.innerHTML = '<span class="material-symbols-outlined text-sm text-yellow-300">auto_awesome</span><span>Analyze Problem with AI</span>';
+  }
+
   modal.classList.remove('hidden');
 };
 
 window.closeAdminTicketModal = function() {
   const modal = document.getElementById('adminTicketModal');
   if (modal) modal.classList.add('hidden');
+};
+
+window.runTicketAiAnalysis = async function() {
+  if (!currentInspectedTicket) return;
+
+  const btn = document.getElementById('adminModalAiAnalyzeBtn');
+  const liveBadge = document.getElementById('adminAiLiveBadge');
+  const placeholder = document.getElementById('adminModalAiPlaceholder');
+  const results = document.getElementById('adminModalAiResults');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">progress_activity</span><span>Analyzing Problem...</span>';
+  }
+  if (liveBadge) {
+    liveBadge.className = 'px-1.5 py-0.2 bg-amber-100 text-amber-800 text-[9px] font-mono font-bold uppercase border border-amber-400 animate-pulse';
+    liveBadge.textContent = 'ANALYZING';
+  }
+
+  try {
+    const res = await fetch('/api/v1/admin/ai-problem-analysis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        ticketId: currentInspectedTicket.ticketId,
+        subject: currentInspectedTicket.subject,
+        message: currentInspectedTicket.message,
+        requesterName: currentInspectedTicket.requesterName,
+        requesterEmail: currentInspectedTicket.requesterEmail,
+        requesterRole: currentInspectedTicket.requesterRole,
+        patientQrCodeId: currentInspectedTicket.patientQrCodeId,
+        priority: currentInspectedTicket.priority,
+        category: currentInspectedTicket.category
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to analyze problem');
+
+    const analysis = data.analysis;
+    currentAiTicketAnalysis = analysis;
+
+    // Populate Results
+    const simpleWordsEl = document.getElementById('adminAiSimpleWords');
+    if (simpleWordsEl) simpleWordsEl.textContent = analysis.problemInSimpleWords;
+
+    const whatToSolveEl = document.getElementById('adminAiWhatToSolve');
+    if (whatToSolveEl) whatToSolveEl.textContent = analysis.whatToSolve;
+
+    const rootCauseEl = document.getElementById('adminAiRootCause');
+    if (rootCauseEl) rootCauseEl.textContent = analysis.rootCause;
+
+    const urgencyBadge = document.getElementById('adminAiUrgencyBadge');
+    if (urgencyBadge) {
+      urgencyBadge.textContent = analysis.urgencyLevel || 'CRITICAL';
+      if (analysis.urgencyLevel === 'CRITICAL') {
+        urgencyBadge.className = 'px-2 py-0.5 bg-red-100 text-[#E11D2E] text-[9px] font-mono font-black uppercase border border-red-300 animate-pulse';
+      } else {
+        urgencyBadge.className = 'px-2 py-0.5 bg-amber-100 text-amber-800 text-[9px] font-mono font-bold uppercase border border-amber-300';
+      }
+    }
+
+    const stepList = document.getElementById('adminAiStepList');
+    if (stepList) {
+      stepList.innerHTML = '';
+      (analysis.stepByStepSolution || []).forEach(s => {
+        const stepDiv = document.createElement('div');
+        stepDiv.className = 'p-2.5 border border-[#111111]/30 bg-[#f9fafb] flex items-start gap-2.5';
+        stepDiv.innerHTML = `
+          <span class="w-5 h-5 bg-[#111111] text-white flex items-center justify-center font-mono font-bold text-[10px] shrink-0 shadow-[1px_1px_0px_#111111]">${s.step}</span>
+          <div class="space-y-0.5">
+            <strong class="text-xs text-[#111111] block font-bold">${escapeHtml(s.title)}</strong>
+            <p class="text-[11px] text-gray-700 leading-normal">${escapeHtml(s.instruction)}</p>
+          </div>
+        `;
+        stepList.appendChild(stepDiv);
+      });
+    }
+
+    const suggestedNoteEl = document.getElementById('adminAiSuggestedNote');
+    if (suggestedNoteEl) suggestedNoteEl.textContent = analysis.suggestedResolutionNote;
+
+    if (placeholder) placeholder.classList.add('hidden');
+    if (results) results.classList.remove('hidden');
+
+    if (liveBadge) {
+      liveBadge.className = 'px-1.5 py-0.2 bg-emerald-100 text-emerald-800 text-[9px] font-mono font-bold uppercase border border-emerald-400';
+      liveBadge.textContent = 'ANALYSIS COMPLETE';
+    }
+
+    showToast('⚡ AI Problem Diagnosis generated successfully!', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+    if (liveBadge) {
+      liveBadge.className = 'px-1.5 py-0.2 bg-red-100 text-[#E11D2E] text-[9px] font-mono font-bold uppercase border border-red-300';
+      liveBadge.textContent = 'ERROR';
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined text-sm text-yellow-300">auto_awesome</span><span>Re-Analyze Problem</span>';
+    }
+  }
+};
+
+window.applyAiResolutionNote = function() {
+  if (!currentAiTicketAnalysis || !currentAiTicketAnalysis.suggestedResolutionNote) {
+    showToast('Run AI Analysis first to generate a suggested note.', 'warning');
+    return;
+  }
+  const notesInput = document.getElementById('adminModalNotesInput');
+  const statusSel = document.getElementById('adminModalStatusSelect');
+
+  if (notesInput) {
+    notesInput.value = currentAiTicketAnalysis.suggestedResolutionNote;
+    notesInput.focus();
+    notesInput.classList.add('bg-emerald-50');
+    setTimeout(() => notesInput.classList.remove('bg-emerald-50'), 1500);
+  }
+  if (statusSel) {
+    statusSel.value = currentAiTicketAnalysis.recommendedStatus || 'RESOLVED';
+  }
+  showToast('✨ AI Resolution note inserted into response box! Ready to save.', 'success');
+};
+
+// God-Mode Studio Handlers
+window.handleGodModeProblemSelectChange = function(ticketId) {
+  if (!ticketId) return;
+  const ticket = (adminTickets || []).find(t => t.ticketId === ticketId);
+  if (!ticket) return;
+
+  const subjEl = document.getElementById('godModeProblemSubject');
+  const msgEl = document.getElementById('godModeProblemMessage');
+  const roleEl = document.getElementById('godModeProblemRole');
+  const qrEl = document.getElementById('godModeProblemQr');
+
+  if (subjEl) subjEl.value = ticket.subject;
+  if (msgEl) msgEl.value = ticket.message;
+  if (roleEl) roleEl.value = ticket.requesterRole || 'doctor';
+  if (qrEl) qrEl.value = ticket.patientQrCodeId || '';
+};
+
+window.runGodModeAiAnalysis = async function() {
+  const subject = document.getElementById('godModeProblemSubject').value.trim();
+  const message = document.getElementById('godModeProblemMessage').value.trim();
+  const role = document.getElementById('godModeProblemRole').value;
+  const qr = document.getElementById('godModeProblemQr').value.trim();
+  const ticketId = document.getElementById('godModeProblemSelect').value;
+
+  if (!subject && !message) {
+    showToast('Please enter a problem subject or detailed description.', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('btnGodModeAnalyze');
+  const placeholder = document.getElementById('godModeAiPlaceholder');
+  const results = document.getElementById('godModeAiResults');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">progress_activity</span><span>Analyzing...</span>';
+  }
+
+  try {
+    const res = await fetch('/api/v1/admin/ai-problem-analysis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        ticketId,
+        subject,
+        message,
+        requesterRole: role,
+        patientQrCodeId: qr
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to process AI diagnostics');
+
+    const a = data.analysis;
+
+    document.getElementById('godModeAiSimpleWords').textContent = a.problemInSimpleWords;
+    document.getElementById('godModeAiWhatToSolve').textContent = a.whatToSolve;
+    document.getElementById('godModeAiRootCause').textContent = a.rootCause;
+
+    const stepsContainer = document.getElementById('godModeAiSteps');
+    if (stepsContainer) {
+      stepsContainer.innerHTML = '';
+      (a.stepByStepSolution || []).forEach(s => {
+        const item = document.createElement('div');
+        item.className = 'p-2 border border-[#111111]/20 bg-white flex items-start gap-2';
+        item.innerHTML = `
+          <span class="w-5 h-5 bg-[#111111] text-white flex items-center justify-center font-mono font-bold text-[10px] shrink-0">${s.step}</span>
+          <div>
+            <strong class="text-xs text-[#111111] block font-bold">${escapeHtml(s.title)}</strong>
+            <p class="text-[11px] text-gray-700 leading-normal">${escapeHtml(s.instruction)}</p>
+          </div>
+        `;
+        stepsContainer.appendChild(item);
+      });
+    }
+
+    document.getElementById('godModeAiNote').textContent = a.suggestedResolutionNote;
+
+    if (placeholder) placeholder.classList.add('hidden');
+    if (results) results.classList.remove('hidden');
+
+    showToast('⚡ Problem diagnosed successfully with step-by-step instructions!', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined text-sm text-yellow-300">auto_awesome</span><span>Analyze &amp; Solve with AI</span>';
+    }
+  }
 };
 
 window.handleAdminTicketSubmit = async function(e) {
@@ -1304,6 +1589,9 @@ window.openAdminUserProfile = async function(userId, sourceTicketId = null) {
     document.getElementById('adminProfEmail').value = user.email || '';
     document.getElementById('adminProfPhone').value = user.phone || '';
     document.getElementById('adminProfGender').value = user.gender || 'other';
+    if (document.getElementById('adminProfRole')) {
+      document.getElementById('adminProfRole').value = user.role;
+    }
     document.getElementById('adminProfActive').value = user.active ? 'true' : 'false';
     document.getElementById('adminProfVerificationStatus').value = user.verificationStatus || 'PENDING';
     document.getElementById('adminProfAddress').value = user.address || '';
@@ -1311,6 +1599,20 @@ window.openAdminUserProfile = async function(userId, sourceTicketId = null) {
     document.getElementById('adminProfState').value = user.state || '';
     document.getElementById('adminProfVerificationNote').value = user.verificationNote || '';
     document.getElementById('adminProfNewPassword').value = '';
+
+    // Safety lockout on Delete button for self
+    const profDelBtn = document.getElementById('adminProfDeleteBtn');
+    if (profDelBtn) {
+      if (currentUser && (currentUser._id === user.id || currentUser.id === user.id)) {
+        profDelBtn.disabled = true;
+        profDelBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        profDelBtn.title = 'Cannot purge own active admin account';
+      } else {
+        profDelBtn.disabled = false;
+        profDelBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        profDelBtn.title = 'Purge user account (God Mode)';
+      }
+    }
 
     // Quick Actions Bar
     const qBar = document.getElementById('adminUserQuickActions');
@@ -1882,6 +2184,19 @@ window.handleAdminProfileSave = async function(e) {
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">progress_activity</span><span>Applying Fixes...</span>';
 
+    // God-Mode: System Role Promotion / Migration
+    const selectedRole = document.getElementById('adminProfRole')?.value;
+    if (selectedRole && selectedRole !== role) {
+      const roleRes = await fetch(`/api/v1/admin/users/${userId}/role`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ role: selectedRole })
+      });
+      const roleData = await roleRes.json();
+      if (!roleRes.ok) throw new Error(roleData.error || 'Failed to migrate user role');
+    }
+
     const res = await fetch(`/api/v1/admin/users/${userId}/profile`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -2265,3 +2580,476 @@ window.renderEmergencyPreviewContent = function() {
     ` : ''}
   `;
 };
+
+// ============================================================
+// GOD-MODE & SUPER-ADMINISTRATOR CAPABILITIES
+// ============================================================
+
+window.openCreateUserModal = function() {
+  const modal = document.getElementById('adminCreateUserModal');
+  if (!modal) return;
+  const form = document.getElementById('adminCreateUserForm');
+  if (form) form.reset();
+  selectCreateUserRole('patient');
+  modal.classList.remove('hidden');
+};
+
+window.closeCreateUserModal = function() {
+  const modal = document.getElementById('adminCreateUserModal');
+  if (modal) modal.classList.add('hidden');
+};
+
+window.selectCreateUserRole = function(role) {
+  const roleInput = document.getElementById('createTargetRole');
+  if (roleInput) roleInput.value = role;
+
+  const roles = ['patient', 'doctor', 'crew', 'hospital', 'admin'];
+  roles.forEach(r => {
+    const btn = document.getElementById(`createRoleBtn_${r}`);
+    if (btn) {
+      if (r === role) {
+        btn.className = 'p-2 border-2 border-[#111111] bg-[#111111] text-white text-center transition';
+      } else {
+        btn.className = 'p-2 border-2 border-[#111111] bg-white text-[#111111] hover:bg-gray-100 text-center transition';
+      }
+    }
+    const fields = document.getElementById(`createRoleFields_${r}`);
+    if (fields) {
+      if (r === role) fields.classList.remove('hidden');
+      else fields.classList.add('hidden');
+    }
+  });
+};
+
+window.handleAdminCreateUserSubmit = async function(e) {
+  e.preventDefault();
+  const role = document.getElementById('createTargetRole')?.value || 'patient';
+  const name = document.getElementById('createUserName')?.value.trim();
+  const email = document.getElementById('createUserEmail')?.value.trim();
+  const password = document.getElementById('createUserPassword')?.value;
+  const phone = document.getElementById('createUserPhone')?.value.trim();
+  const gender = document.getElementById('createUserGender')?.value || 'male';
+  const address = document.getElementById('createUserAddress')?.value.trim();
+  const city = document.getElementById('createUserCity')?.value.trim();
+  const state = document.getElementById('createUserState')?.value.trim();
+
+  let roleDetails = {};
+  if (role === 'patient') {
+    roleDetails = {
+      bloodGroup: document.getElementById('createPatientBloodGroup')?.value || 'O+',
+      age: document.getElementById('createPatientAge')?.value ? parseInt(document.getElementById('createPatientAge').value) : undefined,
+      allergies: document.getElementById('createPatientAllergies')?.value.trim(),
+      healthIssues: document.getElementById('createPatientHealthIssues')?.value.trim(),
+      medications: document.getElementById('createPatientMedications')?.value.trim(),
+      emergencyContactName: document.getElementById('createPatientEmergencyName')?.value.trim(),
+      emergencyContactPhone: document.getElementById('createPatientEmergencyPhone')?.value.trim()
+    };
+  } else if (role === 'doctor') {
+    roleDetails = {
+      specialization: document.getElementById('createDoctorSpecialty')?.value.trim() || 'General Medicine',
+      licenseNumber: document.getElementById('createDoctorLicense')?.value.trim() || 'MED-' + Date.now().toString(36).toUpperCase(),
+      hospital: document.getElementById('createDoctorHospital')?.value.trim() || 'City Hospital'
+    };
+  } else if (role === 'crew') {
+    roleDetails = {
+      vehicleNumber: document.getElementById('createCrewVehicle')?.value.trim() || 'EMS-' + Math.floor(100 + Math.random() * 900),
+      station: document.getElementById('createCrewStation')?.value.trim() || 'Central Station',
+      dutyStatus: document.getElementById('createCrewDutyStatus')?.value || 'on_duty'
+    };
+  } else if (role === 'hospital') {
+    roleDetails = {
+      hospitalName: document.getElementById('createHospName')?.value.trim() || 'Central Hospital',
+      department: document.getElementById('createHospDept')?.value.trim() || 'Emergency Directorate'
+    };
+  }
+
+  const btn = document.getElementById('btnSubmitCreateUser');
+  const origHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">progress_activity</span><span>Provisioning...</span>';
+  }
+
+  try {
+    const res = await fetch('/api/v1/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        name, email, password, phone, gender, address, city, state, role, roleDetails
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to create user');
+
+    showToast(`✅ Created user ${data.user.name} (${data.user.role.toUpperCase()}) successfully!`, 'success');
+    closeCreateUserModal();
+    await loadAdminUsers();
+    await loadAdminStats();
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
+};
+
+window.adminDeleteUser = async function(userId, userName) {
+  if (currentUser && (currentUser._id === userId || currentUser.id === userId)) {
+    showToast('Root Safety: You cannot delete your own active administrator account!', 'error');
+    return;
+  }
+
+  const confirmed = await adminConfirmDialog({
+    title: 'Purge User Account & Records',
+    subtitle: 'GOD-MODE PERMANENT DELETION',
+    icon: 'delete_forever',
+    message: `Are you sure you want to permanently purge user <strong>${escapeHtml(userName || 'User')}</strong>?`,
+    warning: '<strong>CRITICAL WARNING:</strong> This action will permanently obliterate this account and cascade-delete all linked medical records, QR credentials, audit entries, and verification files from MongoDB.',
+    confirmText: 'Permanently Obliterate User',
+    confirmIcon: 'delete_forever',
+    confirmClass: 'btn-danger px-5 py-2.5 uppercase font-mono font-bold tracking-wider flex items-center gap-2 shadow-[2px_2px_0px_#111111]'
+  });
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(`/api/v1/admin/users/${userId}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete user');
+
+    showToast(`✅ ${data.message}`, 'success');
+    closeAdminUserProfile();
+    await loadAdminUsers();
+    await loadAdminStats();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
+window.adminDeleteUserFromModal = function() {
+  const userId = document.getElementById('adminUserHiddenId')?.value;
+  const userName = document.getElementById('adminProfName')?.value;
+  if (!userId) return;
+  adminDeleteUser(userId, userName);
+};
+
+window.loadAdminSosIncidents = async function() {
+  const tbody = document.getElementById('adminSosTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 font-mono text-xs text-gray-500"><span class="material-symbols-outlined text-lg animate-spin text-[#E11D2E] inline align-middle mr-2">refresh</span>Connecting to city-wide SOS beacons...</td></tr>`;
+
+  try {
+    const res = await fetch('/api/v1/admin/sos', { credentials: 'include' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch SOS alerts');
+
+    const alerts = data.alerts || [];
+    const counts = data.counts || { active: 0, dispatched: 0, resolved: 0, total: 0 };
+
+    if (document.getElementById('sosCountActive')) document.getElementById('sosCountActive').textContent = counts.active;
+    if (document.getElementById('sosCountEnRoute')) document.getElementById('sosCountEnRoute').textContent = counts.dispatched;
+    if (document.getElementById('sosCountResolved')) document.getElementById('sosCountResolved').textContent = counts.resolved;
+    if (document.getElementById('sosCountTotal')) document.getElementById('sosCountTotal').textContent = counts.total;
+
+    if (alerts.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center p-8 font-mono text-xs text-gray-500 uppercase font-bold">Zero active or past emergency distress beacons on file.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = alerts.map((a, idx) => {
+      let statusBadge = '<span class="px-2 py-0.5 border border-[#E11D2E] bg-red-100 text-[#E11D2E] font-mono text-[10px] font-bold uppercase animate-pulse">🚨 ACTIVE</span>';
+      if (a.status === 'CREW_DISPATCHED' || a.status === 'ACKNOWLEDGED') {
+        statusBadge = '<span class="px-2 py-0.5 border border-amber-600 bg-amber-50 text-amber-900 font-mono text-[10px] font-bold uppercase">🚑 EN ROUTE</span>';
+      } else if (a.status === 'RESOLVED') {
+        statusBadge = '<span class="px-2 py-0.5 border border-emerald-600 bg-emerald-50 text-emerald-800 font-mono text-[10px] font-bold uppercase">✔ RESOLVED</span>';
+      }
+
+      const timeAgo = Math.round((Date.now() - new Date(a.createdAt).getTime()) / 60000);
+      const timeStr = timeAgo < 60 ? `${timeAgo}m ago` : `${Math.round(timeAgo / 60)}h ago`;
+
+      let locStr = 'GPS Pending';
+      if (a.location?.latitude && a.location?.longitude) {
+        locStr = `<a href="https://maps.google.com/?q=${a.location.latitude},${a.location.longitude}" target="_blank" class="text-blue-700 hover:underline flex items-center gap-1 font-mono text-[10px]"><span class="material-symbols-outlined text-xs">location_on</span>${a.location.latitude.toFixed(4)}, ${a.location.longitude.toFixed(4)}</a>`;
+      }
+
+      return `
+        <tr class="border-b border-[#111111]/10 hover:bg-[#f9fafb] font-sans text-xs">
+          <td class="p-3 font-mono text-[#111111]/60 font-bold">${idx + 1}</td>
+          <td class="p-3">
+            <strong class="text-xs uppercase text-[#111111] block">${escapeHtml(a.patientName || 'Emergency Patient')}</strong>
+            <span class="font-mono text-[10px] text-[#E11D2E] font-bold">${a.qrCodeId ? `QR: ${a.qrCodeId}` : ''}</span>
+          </td>
+          <td class="p-3 font-mono text-xs">
+            <div>${new Date(a.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            <div class="text-gray-400 text-[10px]">${timeStr}</div>
+          </td>
+          <td class="p-3">${locStr}</td>
+          <td class="p-3">${statusBadge}</td>
+          <td class="p-3 font-mono text-[11px]">
+            ${a.assignedCrew ? `<strong class="text-emerald-800">${escapeHtml(a.assignedCrew.vehicleNumber || 'Assigned Crew')}</strong>` : '<span class="text-gray-400">Unassigned</span>'}
+          </td>
+          <td class="p-3 text-right">
+            <div class="flex items-center justify-end gap-1 font-mono">
+              ${a.status !== 'RESOLVED' ? `
+                <button onclick="adminOverrideSosStatus('${a.sosId || a._id}', 'RESOLVED')" class="btn-primary text-[10px] px-2 py-1 uppercase font-bold" title="Force Resolve Incident">
+                  Resolve
+                </button>
+              ` : ''}
+              <button onclick="adminDeleteSos('${a.sosId || a._id}')" class="btn-secondary text-[10px] px-2 py-1 uppercase font-bold text-[#E11D2E] hover:bg-red-600 hover:text-white" title="Purge Beacon Record">
+                <span class="material-symbols-outlined text-xs">delete</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-xs text-[#E11D2E] font-mono">Failed to load SOS beacons: ${err.message}</td></tr>`;
+  }
+};
+
+window.adminOverrideSosStatus = async function(sosId, status) {
+  try {
+    const res = await fetch(`/api/v1/admin/sos/${sosId}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ status })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update SOS status');
+
+    showToast(`✅ SOS beacon status changed to ${status}`, 'success');
+    loadAdminSosIncidents();
+    loadAdminStats();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
+window.adminDeleteSos = async function(sosId) {
+  const confirmed = await adminConfirmDialog({
+    title: 'Purge Emergency SOS Beacon',
+    subtitle: 'TACTICAL RADAR OVERRIDE',
+    icon: 'delete',
+    message: 'Are you sure you want to purge this SOS beacon alert from the registry?',
+    confirmText: 'Purge SOS Beacon',
+    confirmClass: 'btn-danger px-4 py-2 uppercase font-mono font-bold text-xs'
+  });
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(`/api/v1/admin/sos/${sosId}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete SOS alert');
+
+    showToast('✅ SOS beacon record purged', 'success');
+    loadAdminSosIncidents();
+    loadAdminStats();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
+window.loadAdminFleet = async function() {
+  const tbody = document.getElementById('adminFleetTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 font-mono text-xs text-gray-500"><span class="material-symbols-outlined text-lg animate-spin text-[#E11D2E] inline align-middle mr-2">refresh</span>Retrieving fleet tactical positions...</td></tr>`;
+
+  try {
+    const res = await fetch('/api/v1/admin/crew/fleet', { credentials: 'include' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to load fleet');
+
+    const fleet = data.fleet || [];
+    const counts = data.counts || { total: 0, onDuty: 0, offDuty: 0 };
+
+    if (document.getElementById('fleetStatOnDuty')) document.getElementById('fleetStatOnDuty').textContent = counts.onDuty;
+    if (document.getElementById('fleetStatOffDuty')) document.getElementById('fleetStatOffDuty').textContent = counts.offDuty;
+    if (document.getElementById('fleetStatTotal')) document.getElementById('fleetStatTotal').textContent = counts.total;
+
+    if (fleet.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center p-8 font-mono text-xs text-gray-500 uppercase font-bold">No ambulance crew units registered in the system.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = fleet.map(c => {
+      const isOnDuty = c.dutyStatus === 'on_duty';
+      const dutyBadge = isOnDuty
+        ? '<span class="px-2 py-0.5 border border-emerald-600 bg-emerald-50 text-emerald-800 font-mono text-[10px] font-bold uppercase">● ON-DUTY</span>'
+        : '<span class="px-2 py-0.5 border border-gray-400 bg-gray-100 text-gray-600 font-mono text-[10px] font-bold uppercase">○ OFF-DUTY</span>';
+
+      let gpsStr = '<span class="text-gray-400">Stationary</span>';
+      if (c.currentLocation?.latitude && c.currentLocation?.longitude) {
+        gpsStr = `<a href="https://maps.google.com/?q=${c.currentLocation.latitude},${c.currentLocation.longitude}" target="_blank" class="text-blue-700 hover:underline font-mono text-[10px]">${c.currentLocation.latitude.toFixed(4)}, ${c.currentLocation.longitude.toFixed(4)}</a>`;
+      }
+
+      return `
+        <tr class="border-b border-[#111111]/10 hover:bg-[#f9fafb] font-sans text-xs">
+          <td class="p-3">
+            <strong class="text-xs uppercase text-[#E11D2E] font-mono block">${escapeHtml(c.vehicleNumber || 'Unassigned')}</strong>
+            <span class="text-gray-600 text-[11px]">${escapeHtml(c.crewType || 'ambulance')}</span>
+          </td>
+          <td class="p-3">
+            <strong class="text-xs text-[#111111] block">${escapeHtml(c.crewName || 'Paramedic')}</strong>
+            <span class="text-[10px] font-mono text-gray-500">${escapeHtml(c.crewEmail || '')}</span>
+          </td>
+          <td class="p-3 font-mono text-xs text-gray-700">${escapeHtml(c.station || 'Central Station')}</td>
+          <td class="p-3">${gpsStr}</td>
+          <td class="p-3">${dutyBadge}</td>
+          <td class="p-3 text-right font-mono">
+            <button onclick="adminToggleCrewDuty('${c.crewId}', '${isOnDuty ? 'off_duty' : 'on_duty'}')" class="${isOnDuty ? 'btn-secondary text-amber-800 hover:bg-amber-100' : 'btn-primary text-white'} px-3 py-1 text-[10px] uppercase font-bold tracking-wider">
+              ${isOnDuty ? 'Force Off-Duty' : 'Force On-Duty'}
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-xs text-[#E11D2E] font-mono">Fleet load error: ${err.message}</td></tr>`;
+  }
+};
+
+window.adminToggleCrewDuty = async function(crewId, targetStatus) {
+  try {
+    const res = await fetch(`/api/v1/admin/crew/${crewId}/duty`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ dutyStatus: targetStatus })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to toggle duty');
+
+    showToast(`✅ Crew duty toggled to ${targetStatus.toUpperCase().replace('_', '-')}`, 'success');
+    loadAdminFleet();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
+window.adminRunSystemRepair = async function() {
+  const btn = document.getElementById('btnRunSystemRepair');
+  const box = document.getElementById('repairResultsBox');
+  const summaryEl = document.getElementById('repairSummaryText');
+  const logsEl = document.getElementById('repairLogsList');
+
+  const origHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">progress_activity</span><span>Executing Diagnostics & Self-Healing...</span>';
+  }
+
+  try {
+    const res = await fetch('/api/v1/admin/system/repair', {
+      method: 'POST',
+      credentials: 'include'
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'System repair diagnosis failed');
+
+    if (box) box.classList.remove('hidden');
+    if (summaryEl) {
+      const r = data.results;
+      summaryEl.innerHTML = `
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-xs">
+          <div class="p-2 border border-[#111111] bg-white"><strong>Inspected:</strong> ${r.scannedUsers} Users</div>
+          <div class="p-2 border border-[#111111] bg-white"><strong>Missing Profiles:</strong> ${r.missingProfilesFixed} Created</div>
+          <div class="p-2 border border-[#111111] bg-white"><strong>Security Sync:</strong> ${r.missingSecurityFixed} Repaired</div>
+          <div class="p-2 border border-[#111111] bg-white"><strong>QR Codes:</strong> ${r.missingQrFixed} Generated</div>
+        </div>
+        <p class="mt-2 text-emerald-800 font-bold">✔ Self-healing complete. All detected corruptions or missing relational links resolved.</p>
+      `;
+    }
+
+    if (logsEl && Array.isArray(data.results?.logs)) {
+      logsEl.innerHTML = data.results.logs.map(log => `<div>&bull; ${escapeHtml(log)}</div>`).join('');
+    }
+
+    showToast('✅ 1-Click Platform Integrity Self-Healing finished!', 'success');
+    await loadAdminStats();
+    await loadAdminUsers();
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
+};
+
+window.adminSendBroadcast = async function(e) {
+  e.preventDefault();
+  const target = document.getElementById('broadcastTarget')?.value || 'all';
+  const priority = document.getElementById('broadcastPriority')?.value || 'emergency';
+  const message = document.getElementById('broadcastMessage')?.value.trim();
+  if (!message) return;
+
+  const btn = document.getElementById('btnSendBroadcast');
+  const origHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">progress_activity</span><span>Transmitting...</span>';
+  }
+
+  try {
+    const res = await fetch('/api/v1/admin/broadcast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ target, priority, message })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Broadcast failed');
+
+    showToast(`📢 Announcement blasted across socket mesh: ${data.message}`, 'success');
+    const msgInput = document.getElementById('broadcastMessage');
+    if (msgInput) msgInput.value = '';
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
+};
+
+window.adminDeleteTicket = async function(ticketId) {
+  const confirmed = await adminConfirmDialog({
+    title: 'Purge Help Ticket',
+    subtitle: 'SUPPORT CLEARINGHOUSE',
+    icon: 'delete',
+    message: `Are you sure you want to permanently delete ticket #${ticketId}?`,
+    confirmText: 'Delete Ticket',
+    confirmClass: 'btn-danger px-4 py-2 uppercase font-mono font-bold text-xs'
+  });
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(`/api/v1/admin/help-tickets/${ticketId}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete ticket');
+
+    showToast('✅ Ticket permanently deleted', 'success');
+    await loadAdminHelpTickets();
+    await loadAdminStats();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+

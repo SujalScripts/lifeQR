@@ -31,8 +31,8 @@ const ambulanceCrewSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['available', 'dispatched', 'en_route', 'at_scene', 'transporting', 'off_duty'],
-    default: 'available'
+    enum: ['available', 'on_duty', 'dispatched', 'en_route', 'at_scene', 'transporting', 'off_duty'],
+    default: 'on_duty'
   }
 }, {
   timestamps: true

@@ -7,6 +7,7 @@ let activeAdmissions = [];
 let doctorRoster = [];
 let bloodBankInventory = {};
 let bedData = {};
+let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   initHospitalDashboard();
@@ -15,6 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initHospitalDashboard() {
+  if (typeof checkDashboardAccess === 'function') {
+    currentUser = await checkDashboardAccess(['hospital', 'doctor', 'admin']);
+  }
   await Promise.all([
     loadHospitalMetrics(),
     loadAdmissionsList(),

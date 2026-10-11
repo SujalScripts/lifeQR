@@ -7,10 +7,26 @@ let mapMarker = null;
 let activeSosId = null;
 let activeSosLocation = null;
 
+// Tactical 24/7 Radar & Live Location State
+let tacticalMapInstance = null;
+let crewAmbulanceMarker = null;
+let crewDispatchPerimeterCircle = null;
+let tacticalRouteLine = null;
+let activeSosMarkers = new Map();
+let currentSelectedSos = null;
+let crewLiveCoords = { lat: 18.9438, lng: 72.8234, accuracy: 10 }; // Default baseline (Mumbai Emergency Corridor)
+let liveTrackingWatchId = null;
+let locationSyncInterval = null;
+let isCrewOffDuty = false;
+
 function crewApiFetch(endpoint, options = {}) {
   const request = window.authFetch || fetch;
   const url = window.getApiUrl ? window.getApiUrl(endpoint) : (endpoint.startsWith('http') ? endpoint : `/api/v1${endpoint}`);
-  return request(url, { ...options, credentials: 'include' });
+  const headers = { ...(options.headers || {}) };
+  if (options.body && typeof options.body === 'string' && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+  return request(url, { ...options, headers, credentials: 'include' });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -22,6 +38,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Check account verification status
   await checkVerificationStatus();
+
+  // Load and apply Duty Status (On-Duty / Off-Duty)
+  await loadCrewDutyStatus();
+
+  // Initialize Tactical 24/7 Radar Map & Geolocation Tracking
+  initCrewTacticalMap();
+  startCrewLiveTracking();
+
+  // Wire acknowledge button if present in DOM
+  const ackBtn = document.getElementById('ackSosBtn');
+  if (ackBtn) {
+    ackBtn.addEventListener('click', window.acceptCurrentSosDispatch);
+  }
 
   // Setup form submit listeners
   setupCrewListeners();
@@ -78,12 +107,44 @@ function renderVerificationBanner(status) {
   `;
 }
 
+// ----------------------------------------------------
+// Real-Time Socket.IO Pipeline
+// ----------------------------------------------------
 function initSocketConnection() {
   try {
-    const socket = io({ withCredentials: true });
+    const socketHost = (window.API_URL && window.API_URL.startsWith('http')) ? new URL(window.API_URL).origin : window.location.origin;
+    const socket = io(socketHost, { withCredentials: true });
+
+    socket.on('connect', () => {
+      console.log('🔌 Crew tactical socket connected:', socket.id);
+    });
+
     socket.on('sos-alert', (data) => {
-      activeSosId = data.sosId;
-      showSosAlertPopup(data);
+      console.log('🚨 Incoming live SOS alert received:', data);
+      handleIncomingSosAlert(data);
+    });
+
+    socket.on('sos-dispatch-accepted', (data) => {
+      console.log('🚨 SOS dispatch accepted event:', data);
+      if (data.sosId && activeSosMarkers.has(data.sosId)) {
+        const item = activeSosMarkers.get(data.sosId);
+        item.status = 'dispatched';
+        if (item.marker) {
+          item.marker.setPopupContent(`
+            <div style="font-family: Archivo, sans-serif; padding: 4px; min-width: 170px;">
+              <span style="background: #059669; color: white; font-size: 9px; font-weight: bold; padding: 2px 5px; font-family: monospace;">DISPATCHED &bull; EN ROUTE</span>
+              <p style="font-weight: 900; font-size: 13px; margin-top: 4px; text-transform: uppercase;">${escapeHtml(item.alert.name)}</p>
+              <p style="font-size: 10px; font-family: monospace; color: #555;">Responded by: ${escapeHtml(data.crewName || 'Ambulance Unit')}</p>
+            </div>
+          `);
+        }
+      }
+      loadActiveSosAlerts();
+    });
+
+    socket.on('sos-claimed', (data) => {
+      showToast(`Unit ${data.claimedBy?.vehicleNumber || '108'} (${data.claimedBy?.name || 'Crew'}) claimed SOS ${data.sosId}`, 'info');
+      loadActiveSosAlerts();
     });
 
     socket.on('trauma-bay-assigned', (data) => {
@@ -94,16 +155,996 @@ function initSocketConnection() {
       showToast(`LifeQR Dispatch Admin updated ticket ${data.ticketId} (${data.status})`, 'info');
       loadCrewHelpTickets();
     });
+
+    // Listen for real-time crew duty state updates
+    socket.on('crew-duty-updated', (data) => {
+      if (currentUser && (data.crewId === currentUser._id || data.crewId === currentUser.id)) {
+        isCrewOffDuty = Boolean(data.isOffDuty);
+        renderCrewDutyUI();
+        updateMapDutyVisuals();
+      }
+    });
   } catch (e) {
-    console.warn('Real-time Socket.IO connection failed. Crew alert broadcast disabled.');
+    console.warn('Real-time Socket.IO connection failed. Crew alert broadcast disabled:', e);
   }
+}
+
+// ----------------------------------------------------
+// Duty Status Controller (ON-DUTY / OFF-DUTY)
+// ----------------------------------------------------
+async function loadCrewDutyStatus() {
+  try {
+    const res = await crewApiFetch('/sos/crew/duty-status');
+    if (!res.ok) return;
+    const data = await res.json();
+    isCrewOffDuty = Boolean(data.isOffDuty || data.status === 'off_duty');
+    renderCrewDutyUI();
+  } catch (err) {
+    console.warn('Failed to load crew duty status:', err);
+  }
+}
+
+window.toggleCrewDutyStatus = async function() {
+  const nextTarget = isCrewOffDuty ? 'on_duty' : 'off_duty';
+  const toggleBtn = document.getElementById('toggleDutyBtn');
+  const navBtn = document.getElementById('navDutyToggleBtn');
+  
+  if (toggleBtn) toggleBtn.disabled = true;
+  if (navBtn) navBtn.disabled = true;
+
+  try {
+    const res = await crewApiFetch('/sos/crew/duty-status', {
+      method: 'POST',
+      body: JSON.stringify({ status: nextTarget })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update duty status');
+
+    isCrewOffDuty = Boolean(data.isOffDuty);
+    renderCrewDutyUI();
+    updateMapDutyVisuals();
+
+    if (isCrewOffDuty) {
+      showToast(`⏸️ Unit ${data.vehicleNumber || '108'} is now OFF-DUTY. Siren alarms muted and dispatch standby active.`, 'info', 8000);
+    } else {
+      showToast(`🚨 Unit ${data.vehicleNumber || '108'} is now ON-DUTY. 24/7 Tactical radar and emergency SOS alarms active!`, 'success', 8000);
+    }
+  } catch (err) {
+    showToast(err.message || 'Error updating duty status', 'error');
+  } finally {
+    if (toggleBtn) toggleBtn.disabled = false;
+    if (navBtn) navBtn.disabled = false;
+  }
+};
+
+function renderCrewDutyUI() {
+  const badge = document.getElementById('crewDutyBadge');
+  const badgeText = document.getElementById('crewDutyBadgeText');
+  const badgeDot = document.getElementById('crewDutyBadgeDot');
+  const toggleBtn = document.getElementById('toggleDutyBtn');
+  const toggleBtnText = document.getElementById('toggleDutyBtnText');
+  const toggleIcon = document.getElementById('toggleDutyIcon');
+  
+  const navBtn = document.getElementById('navDutyToggleBtn');
+  const navDot = document.getElementById('navDutyDot');
+  const navText = document.getElementById('navDutyText');
+
+  const noticeBanner = document.getElementById('crewOffDutyNoticeBanner');
+  const title = document.getElementById('crewDutyTitle');
+  const subtitle = document.getElementById('crewDutySubtitle');
+  const iconWrapper = document.getElementById('crewUnitIconWrapper');
+  const icon = document.getElementById('crewUnitIcon');
+
+  const gpsBadge = document.getElementById('crewGpsStatusBadge');
+  const gpsText = document.getElementById('crewGpsStatusText');
+
+  if (isCrewOffDuty) {
+    // Card badge & button
+    if (badge) {
+      badge.className = 'px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-500 text-[10px] font-mono font-bold uppercase flex items-center gap-1';
+    }
+    if (badgeText) badgeText.textContent = 'OFF-DUTY';
+    if (badgeDot) {
+      badgeDot.className = 'w-1.5 h-1.5 rounded-full bg-slate-400';
+    }
+    if (toggleBtn) {
+      toggleBtn.className = 'px-2 py-0.5 border-2 border-emerald-700 bg-emerald-50 text-emerald-800 hover:bg-emerald-700 hover:text-white text-[10px] font-mono font-bold uppercase transition flex items-center gap-1 shadow-[1px_1px_0px_#111111]';
+    }
+    if (toggleBtnText) toggleBtnText.textContent = 'Go On-Duty';
+    if (toggleIcon) toggleIcon.textContent = 'play_arrow';
+
+    // Nav button
+    if (navBtn) {
+      navBtn.className = 'px-3 py-1.5 border-2 border-[#111111] bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-[2px_2px_0px_#111111] transition';
+    }
+    if (navDot) {
+      navDot.className = 'w-2 h-2 rounded-full bg-slate-400';
+    }
+    if (navText) navText.textContent = 'OFF-DUTY';
+
+    // Off-Duty Notice Banner
+    if (noticeBanner) noticeBanner.classList.remove('hidden');
+
+    // Telemetry text
+    if (title) title.textContent = 'Unit On Standby';
+    if (subtitle) subtitle.textContent = 'Off-Shift • Alarms Muted';
+    if (iconWrapper) iconWrapper.className = 'w-10 h-10 border-2 border-[#111111] bg-slate-100 flex items-center justify-center flex-shrink-0';
+    if (icon) icon.className = 'material-symbols-outlined text-slate-500 text-2xl';
+
+    // GPS Status in radar header
+    if (gpsBadge) {
+      gpsBadge.className = 'px-2 py-0.5 border border-slate-500 bg-slate-100 text-slate-700 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-[2px_2px_0px_#111111]';
+    }
+    if (gpsText) gpsText.textContent = 'GPS STANDBY (OFF-DUTY)';
+
+  } else {
+    // Card badge & button
+    if (badge) {
+      badge.className = 'px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-700 text-[10px] font-mono font-bold uppercase flex items-center gap-1';
+    }
+    if (badgeText) badgeText.textContent = 'ON-DUTY';
+    if (badgeDot) {
+      badgeDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse';
+    }
+    if (toggleBtn) {
+      toggleBtn.className = 'px-2 py-0.5 border border-[#111111] bg-white hover:bg-[#111111] hover:text-white text-[10px] font-mono font-bold uppercase transition flex items-center gap-1 shadow-[1px_1px_0px_#111111]';
+    }
+    if (toggleBtnText) toggleBtnText.textContent = 'Go Off-Duty';
+    if (toggleIcon) toggleIcon.textContent = 'bedtime';
+
+    // Nav button
+    if (navBtn) {
+      navBtn.className = 'px-3 py-1.5 border-2 border-[#111111] bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-[2px_2px_0px_#111111] transition';
+    }
+    if (navDot) {
+      navDot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+    }
+    if (navText) navText.textContent = 'ON-DUTY';
+
+    // Off-Duty Notice Banner
+    if (noticeBanner) noticeBanner.classList.add('hidden');
+
+    // Telemetry text
+    if (title) title.textContent = 'Rapid Response Unit';
+    if (subtitle) subtitle.textContent = 'Tactical Paramedic Terminal';
+    if (iconWrapper) iconWrapper.className = 'w-10 h-10 border-2 border-[#111111] bg-gray-50 flex items-center justify-center flex-shrink-0';
+    if (icon) icon.className = 'material-symbols-outlined text-[#E11D2E] text-2xl';
+
+    // GPS Status in radar header
+    if (gpsBadge) {
+      gpsBadge.className = 'px-2 py-0.5 border border-emerald-700 bg-emerald-100 text-emerald-900 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-[2px_2px_0px_#111111]';
+    }
+    if (gpsText) gpsText.textContent = 'GPS ONLINE 24/7';
+  }
+}
+
+function updateMapDutyVisuals() {
+  if (!tacticalMapInstance) return;
+
+  // Update ambulance marker icon
+  if (crewAmbulanceMarker) {
+    const icon = L.divIcon({
+      className: 'custom-crew-ambulance-icon',
+      html: `
+        <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; z-index: 50;">
+          <span style="position: absolute; width: 100%; height: 100%; border-radius: 50%; background: ${isCrewOffDuty ? 'rgba(100, 116, 139, 0.25)' : 'rgba(16, 185, 129, 0.4)'}; ${isCrewOffDuty ? '' : 'animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;'}"></span>
+          <div style="position: relative; width: 34px; height: 34px; background: #111111; border: 2px solid ${isCrewOffDuty ? '#94a3b8' : '#10b981'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px #111111;">
+            <span class="material-symbols-outlined" style="color: ${isCrewOffDuty ? '#94a3b8' : '#10b981'}; font-size: 20px; line-height: 1;">ambulance</span>
+          </div>
+          <div style="position: absolute; top: -16px; left: 50%; transform: translateX(-50%); background: #111111; color: ${isCrewOffDuty ? '#94a3b8' : '#10b981'}; font-family: monospace; font-size: 8px; font-weight: 900; padding: 1px 4px; border: 1px solid ${isCrewOffDuty ? '#94a3b8' : '#10b981'}; white-space: nowrap; box-shadow: 1px 1px 0px rgba(0,0,0,0.5);">
+            ${isCrewOffDuty ? 'AMBULANCE (OFF-DUTY)' : 'AMBULANCE (YOU)'}
+          </div>
+        </div>
+      `,
+      iconSize: [44, 44],
+      iconAnchor: [22, 22],
+      popupAnchor: [0, -22]
+    });
+    crewAmbulanceMarker.setIcon(icon);
+  }
+
+  // Update perimeter ring
+  if (crewDispatchPerimeterCircle) {
+    crewDispatchPerimeterCircle.setStyle({
+      color: isCrewOffDuty ? '#64748b' : '#E11D2E',
+      fillColor: isCrewOffDuty ? '#64748b' : '#E11D2E',
+      fillOpacity: isCrewOffDuty ? 0.01 : 0.06
+    });
+  }
+}
+
+// ----------------------------------------------------
+// 24/7 Tactical Geolocation Tracking & Backend Sync
+// ----------------------------------------------------
+function startCrewLiveTracking() {
+  if (!navigator.geolocation) {
+    console.warn('Geolocation not supported by this browser. Using emergency corridor baseline.');
+    updateCrewPosition(crewLiveCoords.lat, crewLiveCoords.lng, 10);
+    return;
+  }
+
+  // Initial fix
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      updateCrewPosition(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+    },
+    (err) => {
+      console.warn('Initial GPS warning:', err.message, '- Using emergency corridor default');
+      updateCrewPosition(crewLiveCoords.lat, crewLiveCoords.lng, 10);
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 }
+  );
+
+  // 24/7 continuous watch
+  liveTrackingWatchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      updateCrewPosition(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+    },
+    (err) => {
+      console.warn('Continuous GPS telemetry notification:', err.message);
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+  );
+
+  // Periodic location push to backend every 20 seconds
+  if (locationSyncInterval) clearInterval(locationSyncInterval);
+  locationSyncInterval = setInterval(syncCrewLocationWithBackend, 20000);
+}
+
+function updateCrewPosition(lat, lng, accuracy = 10) {
+  crewLiveCoords = { lat, lng, accuracy };
+
+  // Update Telemetry Header
+  const tele = document.getElementById('crewRadarTelemetry');
+  if (tele) {
+    tele.textContent = `Fix: ${lat.toFixed(5)}, ${lng.toFixed(5)} • Accuracy: ±${Math.round(accuracy)}m • 24-hr Active Dispatch Mesh`;
+  }
+  const statusTxt = document.getElementById('crewGpsStatusText');
+  if (statusTxt) {
+    statusTxt.textContent = `GPS ONLINE (±${Math.round(accuracy)}M)`;
+  }
+
+  // Update map marker & 3km perimeter circle
+  if (tacticalMapInstance) {
+    if (crewAmbulanceMarker) {
+      crewAmbulanceMarker.setLatLng([lat, lng]);
+    }
+    if (crewDispatchPerimeterCircle) {
+      crewDispatchPerimeterCircle.setLatLng([lat, lng]);
+    }
+  }
+
+  // Recalculate distance for all active markers and refresh feed
+  updateAllSosDistances();
+}
+
+async function syncCrewLocationWithBackend() {
+  if (!crewLiveCoords) return;
+  try {
+    await crewApiFetch('/sos/crew/location', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lat: crewLiveCoords.lat,
+        lng: crewLiveCoords.lng
+      })
+    });
+  } catch (e) {
+    // Non-blocking background sync
+  }
+}
+
+// ----------------------------------------------------
+// Tactical 24/7 Radar Map Engine (Leaflet)
+// ----------------------------------------------------
+function initCrewTacticalMap() {
+  const mapEl = document.getElementById('crewTacticalRadarMap');
+  if (!mapEl) return;
+
+  if (typeof L === 'undefined') {
+    console.warn('Leaflet library not loaded.');
+    mapEl.innerHTML = `
+      <div class="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-[#f9fafb]">
+        <p class="font-black text-sm uppercase text-[#111111]">Map Engine Loading...</p>
+        <p class="text-xs font-mono text-[#111111]/70 mt-1">Coordinates: ${crewLiveCoords.lat.toFixed(4)}, ${crewLiveCoords.lng.toFixed(4)}</p>
+      </div>
+    `;
+    return;
+  }
+
+  try {
+    if (tacticalMapInstance) {
+      try { tacticalMapInstance.remove(); } catch (e) {}
+      tacticalMapInstance = null;
+    }
+    mapEl.innerHTML = '';
+
+    tacticalMapInstance = L.map(mapEl, {
+      zoomControl: true,
+      scrollWheelZoom: false
+    }).setView([crewLiveCoords.lat, crewLiveCoords.lng], 14);
+
+    // High-performance CartoDB Voyager tiles (No 403 OSM blocks, high retina support)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 20,
+      subdomains: 'abcd',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    }).addTo(tacticalMapInstance);
+
+    // 1. Ambulance Marker (My Unit)
+    const ambulanceIcon = L.divIcon({
+      className: 'custom-crew-ambulance-icon',
+      html: `
+        <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; z-index: 50;">
+          <span style="position: absolute; width: 100%; height: 100%; border-radius: 50%; background: rgba(16, 185, 129, 0.4); animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
+          <div style="position: relative; width: 34px; height: 34px; background: #111111; border: 2px solid #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px #111111;">
+            <span class="material-symbols-outlined" style="color: #10b981; font-size: 20px; line-height: 1;">ambulance</span>
+          </div>
+          <div style="position: absolute; top: -16px; left: 50%; transform: translateX(-50%); background: #111111; color: #10b981; font-family: monospace; font-size: 8px; font-weight: 900; padding: 1px 4px; border: 1px solid #10b981; white-space: nowrap; box-shadow: 1px 1px 0px rgba(0,0,0,0.5);">
+            AMBULANCE (YOU)
+          </div>
+        </div>
+      `,
+      iconSize: [44, 44],
+      iconAnchor: [22, 22],
+      popupAnchor: [0, -22]
+    });
+
+    crewAmbulanceMarker = L.marker([crewLiveCoords.lat, crewLiveCoords.lng], { icon: ambulanceIcon, zIndexOffset: 1000 })
+      .addTo(tacticalMapInstance)
+      .bindPopup(`
+        <div style="font-family: Archivo, sans-serif; padding: 3px; min-width: 140px;">
+          <span style="background: #10b981; color: #111111; font-size: 9px; font-weight: 900; padding: 2px 5px; font-family: monospace; text-transform: uppercase;">ACTIVE ON-DUTY</span>
+          <p style="font-weight: 900; font-size: 13px; margin-top: 4px; text-transform: uppercase; color: #111111;">Ambulance Unit 108</p>
+          <p style="font-size: 10px; font-family: monospace; color: #555; margin-top: 2px;">${crewLiveCoords.lat.toFixed(5)}, ${crewLiveCoords.lng.toFixed(5)}</p>
+        </div>
+      `);
+
+    // 2. 2.5 - 3.0 KM Dispatch Perimeter Circle
+    crewDispatchPerimeterCircle = L.circle([crewLiveCoords.lat, crewLiveCoords.lng], {
+      radius: 3000,
+      color: '#E11D2E',
+      weight: 2,
+      dashArray: '6, 6',
+      fillColor: '#E11D2E',
+      fillOpacity: 0.06
+    }).addTo(tacticalMapInstance);
+
+    setTimeout(() => {
+      if (tacticalMapInstance) tacticalMapInstance.invalidateSize();
+    }, 250);
+
+    // Load any existing active SOS beacons in the area
+    loadActiveSosAlerts();
+
+  } catch (err) {
+    console.error('Failed to initialize Tactical Radar Map:', err);
+  }
+}
+
+window.centerMapOnAmbulance = function() {
+  if (tacticalMapInstance && crewLiveCoords) {
+    tacticalMapInstance.flyTo([crewLiveCoords.lat, crewLiveCoords.lng], 14, { duration: 0.8 });
+    showToast('Radar centered on your ambulance unit', 'info');
+  }
+};
+
+let scannedPatientMarker = null;
+
+function plotScannedPatientOnRadar(lat, lng, options = {}) {
+  if (!tacticalMapInstance || typeof L === 'undefined') return;
+
+  // Clear previous scanned patient marker and route
+  if (scannedPatientMarker) {
+    try { tacticalMapInstance.removeLayer(scannedPatientMarker); } catch (e) {}
+    scannedPatientMarker = null;
+  }
+  if (tacticalRouteLine) {
+    try { tacticalMapInstance.removeLayer(tacticalRouteLine); } catch (e) {}
+    tacticalRouteLine = null;
+  }
+
+  const patName = (activePatient && activePatient.name) || options.name || 'Emergency Patient';
+  const blood = (activePatient && (activePatient.bloodGroup || (activePatient.profile && activePatient.profile.bloodGroup))) || options.bloodGroup || 'N/A';
+  const allergies = (activePatient && (activePatient.allergies || (activePatient.profile && activePatient.profile.allergies))) || options.allergies || 'None';
+  const qrId = (activePatient && activePatient.qrCodeId) || options.qrCodeId || '';
+
+  // Custom high-impact Red Pulsing Patient Incident Icon
+  const patientIcon = L.divIcon({
+    className: 'custom-scanned-patient-icon',
+    html: `
+      <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; z-index: 60;">
+        <span style="position: absolute; width: 100%; height: 100%; border-radius: 50%; background: rgba(225, 29, 46, 0.45); animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
+        <div style="position: relative; width: 34px; height: 34px; background: #E11D2E; border: 2px solid #111111; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px #111111;">
+          <span class="material-symbols-outlined" style="color: white; font-size: 20px; line-height: 1;">person_pin_circle</span>
+        </div>
+        <div style="position: absolute; top: -16px; left: 50%; transform: translateX(-50%); background: #E11D2E; color: white; font-family: monospace; font-size: 8px; font-weight: 900; padding: 1px 4px; border: 1px solid #111111; white-space: nowrap; box-shadow: 1px 1px 0px rgba(0,0,0,0.5);">
+          SCENE: ${escapeHtml(patName.split(' ')[0])}
+        </div>
+      </div>
+    `,
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
+    popupAnchor: [0, -22]
+  });
+
+  const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+
+  scannedPatientMarker = L.marker([lat, lng], { icon: patientIcon, zIndexOffset: 950 })
+    .addTo(tacticalMapInstance)
+    .bindPopup(`
+      <div style="font-family: Archivo, sans-serif; padding: 4px; min-width: 175px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+          <span style="background: #E11D2E; color: white; font-size: 9px; font-weight: 900; padding: 2px 5px; font-family: monospace; text-transform: uppercase;">PATIENT SCENE</span>
+          <span style="background: #111111; color: white; font-size: 9px; font-weight: 900; padding: 2px 5px; font-family: monospace;">${escapeHtml(blood)}</span>
+        </div>
+        <p style="font-weight: 900; font-size: 13px; margin-top: 5px; text-transform: uppercase; color: #111111; line-height: 1.2;">
+          ${escapeHtml(patName)}
+        </p>
+        <p style="font-size: 10px; font-family: monospace; color: #555; margin-top: 3px;">
+          GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}
+        </p>
+        ${allergies && allergies !== 'None' ? `<p style="font-size: 10px; color: #b45309; font-weight: bold; margin-top: 2px;">⚠️ ${escapeHtml(Array.isArray(allergies)?allergies.join(', '):allergies)}</p>` : ''}
+        <a href="${mapsUrl}" target="_blank" style="display: inline-block; margin-top: 8px; font-size: 10px; font-weight: 900; background: #111111; color: white; padding: 3px 7px; text-decoration: none; text-transform: uppercase; font-family: monospace;">
+          Open In Google Maps &rarr;
+        </a>
+      </div>
+    `);
+
+  // Calculate distance & ETA
+  let distKm = 0;
+  let etaMins = 1;
+  if (crewLiveCoords && typeof crewLiveCoords.lat === 'number') {
+    distKm = calculateDistanceKm(crewLiveCoords.lat, crewLiveCoords.lng, lat, lng);
+    etaMins = Math.max(1, Math.round((distKm / 35) * 60)); // Avg 35 km/h emergency speed
+
+    tacticalRouteLine = L.polyline([
+      [crewLiveCoords.lat, crewLiveCoords.lng],
+      [lat, lng]
+    ], {
+      color: '#E11D2E',
+      weight: 4,
+      opacity: 0.9,
+      dashArray: '8, 8'
+    }).addTo(tacticalMapInstance);
+
+    const group = L.featureGroup([crewAmbulanceMarker, scannedPatientMarker]);
+    tacticalMapInstance.fitBounds(group.getBounds(), { padding: [50, 50] });
+  } else {
+    tacticalMapInstance.setView([lat, lng], 15);
+  }
+
+  // Update In-Map Tactical HUD
+  updateMapTacticalHud({
+    name: patName,
+    bloodGroup: blood,
+    distanceKm: distKm,
+    etaMins: etaMins,
+    lat,
+    lng,
+    mapsUrl
+  });
+
+  // Activate Tactical Map Header buttons
+  const centerPatBtn = document.getElementById('centerPatientBtn');
+  if (centerPatBtn) centerPatBtn.classList.remove('hidden');
+
+  const fitRouteBtn = document.getElementById('fitRouteBtn');
+  if (fitRouteBtn) fitRouteBtn.classList.remove('hidden');
+
+  const gmapsBtn = document.getElementById('tacticalGmapsBtn');
+  if (gmapsBtn) {
+    gmapsBtn.href = mapsUrl;
+    gmapsBtn.classList.remove('hidden');
+  }
+}
+
+function updateMapTacticalHud(info) {
+  const hud = document.getElementById('mapTacticalHud');
+  if (!hud) return;
+
+  if (!info) {
+    hud.classList.add('hidden');
+    return;
+  }
+
+  hud.classList.remove('hidden');
+  const nameEl = document.getElementById('hudPatientName');
+  if (nameEl) nameEl.textContent = info.name;
+
+  const bloodEl = document.getElementById('hudBloodGroup');
+  if (bloodEl) bloodEl.textContent = info.bloodGroup || 'N/A';
+
+  const distEl = document.getElementById('hudDistanceText');
+  if (distEl) distEl.textContent = `${info.distanceKm.toFixed(1)} KM`;
+
+  const etaEl = document.getElementById('hudEtaText');
+  if (etaEl) etaEl.textContent = `~${info.etaMins} MIN`;
+
+  const navLink = document.getElementById('hudGmapsLink');
+  if (navLink) navLink.href = info.mapsUrl;
+}
+
+function clearPatientFromRadar() {
+  if (scannedPatientMarker && tacticalMapInstance) {
+    try { tacticalMapInstance.removeLayer(scannedPatientMarker); } catch (e) {}
+    scannedPatientMarker = null;
+  }
+  if (tacticalRouteLine && tacticalMapInstance) {
+    try { tacticalMapInstance.removeLayer(tacticalRouteLine); } catch (e) {}
+    tacticalRouteLine = null;
+  }
+
+  updateMapTacticalHud(null);
+
+  const centerPatBtn = document.getElementById('centerPatientBtn');
+  if (centerPatBtn) centerPatBtn.classList.add('hidden');
+
+  const fitRouteBtn = document.getElementById('fitRouteBtn');
+  if (fitRouteBtn) fitRouteBtn.classList.add('hidden');
+
+  const gmapsBtn = document.getElementById('tacticalGmapsBtn');
+  if (gmapsBtn) gmapsBtn.classList.add('hidden');
+
+  if (tacticalMapInstance && crewLiveCoords) {
+    tacticalMapInstance.flyTo([crewLiveCoords.lat, crewLiveCoords.lng], 14, { duration: 0.8 });
+  }
+}
+
+window.centerMapOnPatient = function() {
+  if (scannedPatientMarker && tacticalMapInstance) {
+    tacticalMapInstance.flyTo(scannedPatientMarker.getLatLng(), 16, { duration: 0.8 });
+    scannedPatientMarker.openPopup();
+  }
+};
+
+window.fitMapRoute = function() {
+  if (scannedPatientMarker && crewAmbulanceMarker && tacticalMapInstance) {
+    const group = L.featureGroup([crewAmbulanceMarker, scannedPatientMarker]);
+    tacticalMapInstance.fitBounds(group.getBounds(), { padding: [50, 50] });
+  }
+};
+
+// ----------------------------------------------------
+// Haversine Distance & Proximity Engine
+// ----------------------------------------------------
+function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+  if (typeof lat1 !== 'number' || typeof lon1 !== 'number' || typeof lat2 !== 'number' || typeof lon2 !== 'number') {
+    return 999;
+  }
+  const R = 6371; // Radius of Earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// ----------------------------------------------------
+// Emergency Audio Alert Synthesizer (Web Audio API)
+// ----------------------------------------------------
+function playEmergencySirenTone() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(750, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1300, ctx.currentTime + 0.25);
+    osc.frequency.exponentialRampToValueAtTime(750, ctx.currentTime + 0.5);
+    osc.frequency.exponentialRampToValueAtTime(1300, ctx.currentTime + 0.75);
+
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.9);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.9);
+  } catch (e) {
+    // Audio context may require user interaction
+  }
+}
+
+// ----------------------------------------------------
+// Load Active SOS Beacons from Backend
+// ----------------------------------------------------
+async function loadActiveSosAlerts() {
+  try {
+    const res = await crewApiFetch('/sos/active');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.alerts || !Array.isArray(data.alerts)) return;
+
+    // Clear old markers that are no longer active
+    const newSosIds = new Set(data.alerts.map(a => a.sosId));
+    activeSosMarkers.forEach((val, id) => {
+      if (!newSosIds.has(id)) {
+        if (tacticalMapInstance && val.marker) {
+          try { tacticalMapInstance.removeLayer(val.marker); } catch (e) {}
+        }
+        activeSosMarkers.delete(id);
+      }
+    });
+
+    data.alerts.forEach(alert => {
+      renderSosBeaconOnMap(alert);
+    });
+
+    updateSosFeedList(data.alerts);
+  } catch (err) {
+    console.warn('Failed to load active SOS alerts:', err);
+  }
+}
+
+// ----------------------------------------------------
+// Render SOS Logo Beacon on Map
+// ----------------------------------------------------
+function renderSosBeaconOnMap(alert) {
+  if (!alert.location || typeof alert.location.lat !== 'number' || typeof alert.location.lng !== 'number') {
+    return;
+  }
+  if (!tacticalMapInstance) return;
+
+  const sosId = alert.sosId || alert._id;
+  const distKm = calculateDistanceKm(crewLiveCoords.lat, crewLiveCoords.lng, alert.location.lat, alert.location.lng);
+  const isWithin3Km = distKm <= 3.0;
+
+  // Custom high-impact pulsing LifeQR SOS Logo icon
+  const sosLogoIcon = L.divIcon({
+    className: 'custom-sos-radar-marker',
+    html: `
+      <div style="position: relative; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100;">
+        <span style="position: absolute; width: 100%; height: 100%; border-radius: 50%; background: rgba(225, 29, 46, 0.45); animation: ping 1.2s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
+        <div style="position: relative; width: 36px; height: 36px; background: #E11D2E; border: 2px solid #111111; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 3px 3px 0px #111111;">
+          <span class="material-symbols-outlined" style="color: white; font-size: 20px; line-height: 1;">emergency</span>
+        </div>
+        <div style="position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); background: #111111; color: white; font-family: monospace; font-size: 9px; font-weight: 900; padding: 1px 5px; border: 1px solid white; white-space: nowrap; box-shadow: 2px 2px 0px rgba(0,0,0,0.5);">
+          ${distKm.toFixed(1)} KM
+        </div>
+      </div>
+    `,
+    iconSize: [46, 46],
+    iconAnchor: [23, 23],
+    popupAnchor: [0, -23]
+  });
+
+  // If marker already exists, update position & popup
+  if (activeSosMarkers.has(sosId)) {
+    const existing = activeSosMarkers.get(sosId);
+    existing.distKm = distKm;
+    existing.marker.setLatLng([alert.location.lat, alert.location.lng]);
+    existing.marker.setIcon(sosLogoIcon);
+    return;
+  }
+
+  // Create new marker
+  const marker = L.marker([alert.location.lat, alert.location.lng], { icon: sosLogoIcon, zIndexOffset: 2000 })
+    .addTo(tacticalMapInstance);
+
+  const popupHtml = `
+    <div style="font-family: Archivo, sans-serif; padding: 4px; min-width: 180px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <span style="background: #E11D2E; color: white; font-size: 9px; font-weight: 900; padding: 1px 5px; font-family: monospace; border: 1px solid #111111; text-transform: uppercase;">
+          ${isWithin3Km ? '🚨 IN 3KM ZONE' : 'EMERGENCY SOS'}
+        </span>
+        <span style="font-size: 9px; font-family: monospace; font-weight: bold; color: #111111;">${distKm.toFixed(1)} KM</span>
+      </div>
+      <p style="font-weight: 900; font-size: 13px; text-transform: uppercase; margin: 4px 0 2px 0; color: #111111; line-height: 1.2;">
+        ${escapeHtml(alert.name || 'Emergency Patient')}
+      </p>
+      <p style="font-size: 10px; font-family: monospace; color: #E11D2E; font-weight: bold;">
+        Blood: ${escapeHtml(alert.bloodGroup || 'N/A')} &bull; Allergies: ${escapeHtml(alert.allergies || 'None')}
+      </p>
+      <button onclick="window.triggerSosModalById('${sosId}')" style="margin-top: 8px; width: 100%; background: #E11D2E; color: white; font-weight: 900; font-size: 10px; font-family: monospace; text-transform: uppercase; padding: 5px 8px; border: 2px solid #111111; box-shadow: 2px 2px 0px #111111; cursor: pointer;">
+        ACCEPT DISPATCH &rarr;
+      </button>
+    </div>
+  `;
+
+  marker.bindPopup(popupHtml);
+
+  // Clicking on the SOS logo marker opens the dispatch review modal!
+  marker.on('click', () => {
+    openSosDispatchModal(alert, distKm);
+  });
+
+  activeSosMarkers.set(sosId, { marker, alert, distKm });
+}
+
+window.triggerSosModalById = function(sosId) {
+  if (activeSosMarkers.has(sosId)) {
+    const item = activeSosMarkers.get(sosId);
+    openSosDispatchModal(item.alert, item.distKm);
+  }
+};
+
+function updateAllSosDistances() {
+  const alerts = [];
+  activeSosMarkers.forEach((item, sosId) => {
+    if (item.alert && item.alert.location) {
+      item.distKm = calculateDistanceKm(crewLiveCoords.lat, crewLiveCoords.lng, item.alert.location.lat, item.alert.location.lng);
+      alerts.push(item.alert);
+    }
+  });
+  updateSosFeedList(alerts);
+}
+
+// ----------------------------------------------------
+// Handle Incoming Real-Time SOS Alert Event
+// ----------------------------------------------------
+function handleIncomingSosAlert(data) {
+  activeSosId = data.sosId;
+  activeSosLocation = data.location;
+
+  const distKm = calculateDistanceKm(crewLiveCoords.lat, crewLiveCoords.lng, data.location.lat, data.location.lng);
+  const isWithin3Km = distKm <= 3.0;
+
+  // Play audio alert
+  playEmergencySirenTone();
+
+  // Render SOS beacon on map
+  renderSosBeaconOnMap(data);
+
+  // Pan map to encompass ambulance and victim
+  if (tacticalMapInstance && data.location && typeof data.location.lat === 'number') {
+    tacticalMapInstance.flyTo([data.location.lat, data.location.lng], 15, { duration: 1 });
+  }
+
+  // Populate and open dispatch modal
+  openSosDispatchModal(data, distKm);
+
+  // Also update standby popup values for redundancy
+  showSosAlertPopup(data);
+
+  // Toast
+  if (isWithin3Km) {
+    showToast(`🚨 CRITICAL: SOS triggered ${distKm.toFixed(1)} km away within your 3km response perimeter!`, 'emergency', 12000);
+  } else {
+    showToast(`🚨 EMERGENCY: SOS triggered by ${data.name} (${distKm.toFixed(1)} km away)`, 'emergency', 10000);
+  }
+
+  loadActiveSosAlerts();
+}
+
+function updateSosFeedList(alerts) {
+  const feed = document.getElementById('crewActiveSosFeed');
+  const countBadge = document.getElementById('activeSosCountBadge');
+  if (!feed) return;
+
+  if (!alerts || alerts.length === 0) {
+    feed.innerHTML = `
+      <p class="text-[11px] text-[#111111]/60 font-mono italic p-3 border border-dashed border-[#111111]/20 text-center">
+        ● 24/7 Tactical Scan Active. Standing by for emergency SOS beacons within 3 km perimeter.
+      </p>
+    `;
+    if (countBadge) countBadge.textContent = '0 ACTIVE IN ZONE';
+    return;
+  }
+
+  const enriched = alerts.map(a => {
+    const d = (a.location && typeof a.location.lat === 'number') 
+      ? calculateDistanceKm(crewLiveCoords.lat, crewLiveCoords.lng, a.location.lat, a.location.lng) 
+      : 999;
+    return { ...a, distKm: d };
+  });
+
+  enriched.sort((a, b) => a.distKm - b.distKm);
+
+  const withinZoneCount = enriched.filter(a => a.distKm <= 3.0).length;
+  if (countBadge) {
+    countBadge.textContent = `${withinZoneCount} IN 3KM ZONE (${enriched.length} TOTAL)`;
+    countBadge.className = withinZoneCount > 0 
+      ? 'px-2 py-0.5 border border-[#E11D2E] bg-red-100 text-[#E11D2E] font-bold text-[10px]' 
+      : 'px-2 py-0.5 border border-[#111111] bg-gray-50 text-[10px]';
+  }
+
+  feed.innerHTML = enriched.map(a => {
+    const isNearby = a.distKm <= 3.0;
+    const isDispatched = a.status === 'dispatched';
+
+    return `
+      <div class="p-3 bg-white border-2 border-[#111111] ${isNearby ? 'border-l-4 border-l-[#E11D2E]' : ''} shadow-[2px_2px_0px_#111111] space-y-2">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full ${isNearby ? 'bg-[#E11D2E] animate-ping' : 'bg-amber-500'}"></span>
+            <strong class="font-black text-xs uppercase text-[#111111]">${escapeHtml(a.name || 'Emergency Patient')}</strong>
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="px-2 py-0.5 text-[9px] font-mono font-bold uppercase border ${isNearby ? 'border-[#E11D2E] bg-red-50 text-[#E11D2E]' : 'border-[#111111] bg-gray-50 text-[#111111]'}">
+              ${a.distKm < 900 ? a.distKm.toFixed(1) + ' KM AWAY' : 'ACTIVE SOS'}
+            </span>
+            ${isDispatched ? '<span class="px-1.5 py-0.5 bg-emerald-100 border border-emerald-800 text-emerald-900 text-[9px] font-bold uppercase">EN ROUTE</span>' : ''}
+          </div>
+        </div>
+        <div class="text-[10px] font-mono text-[#111111]/70 flex items-center gap-3">
+          <span>Blood: <strong class="text-[#E11D2E]">${escapeHtml(a.bloodGroup || 'N/A')}</strong></span>
+          <span>Allergies: <strong class="text-amber-700">${escapeHtml(a.allergies || 'None')}</strong></span>
+        </div>
+        <div class="flex items-center gap-2 pt-1">
+          <button onclick="window.triggerSosModalById('${a.sosId || a._id}')" class="btn-danger flex-1 py-1.5 text-[10px] uppercase font-mono font-bold flex items-center justify-center gap-1 shadow-[2px_2px_0px_#111111]">
+            <span class="material-symbols-outlined text-xs">emergency</span>
+            <span>${isDispatched ? 'View Dispatch Status' : 'Accept Dispatch'}</span>
+          </button>
+          <a href="https://www.google.com/maps/search/?api=1&query=${a.location.lat},${a.location.lng}" target="_blank" class="btn-secondary px-3 py-1.5 text-[10px] uppercase font-mono font-bold flex items-center justify-center gap-1">
+            <span class="material-symbols-outlined text-xs">navigation</span>
+            <span>Maps</span>
+          </a>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ----------------------------------------------------
+// Dispatch Modal Controller
+// ----------------------------------------------------
+function openSosDispatchModal(alert, distKm) {
+  currentSelectedSos = alert;
+  const modal = document.getElementById('sosDispatchModal');
+  if (!modal) return;
+
+  const setTxt = (id, txt) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = txt;
+  };
+
+  setTxt('dispatchModalPatientName', alert.name || 'Emergency Patient');
+  setTxt('dispatchModalBloodGroup', alert.bloodGroup || 'N/A');
+  setTxt('dispatchModalAllergies', alert.allergies || 'None recorded');
+  setTxt('dispatchModalMedications', alert.medications || 'None recorded');
+  setTxt('dispatchModalMessage', alert.message || 'Emergency Patient SOS Triggered!');
+  
+  if (alert.location && typeof alert.location.lat === 'number') {
+    setTxt('dispatchModalCoordinates', `${alert.location.lat.toFixed(5)}, ${alert.location.lng.toFixed(5)}`);
+  }
+
+  const distEl = document.getElementById('dispatchModalDistance');
+  if (distEl) {
+    const d = (typeof distKm === 'number' && distKm < 900) ? distKm.toFixed(1) : 'Nearby';
+    const inZone = typeof distKm === 'number' && distKm <= 3.0;
+    distEl.textContent = `${d} KM AWAY • ${inZone ? 'WITHIN 3KM RAPID RESPONSE PERIMETER' : 'REGIONAL DISPATCH BEACON'}`;
+    distEl.className = inZone 
+      ? 'text-xs font-mono text-[#E11D2E] font-bold uppercase mt-0.5 flex items-center gap-1' 
+      : 'text-xs font-mono text-amber-700 font-bold uppercase mt-0.5';
+  }
+
+  const acceptBtn = document.getElementById('dispatchModalAcceptBtn');
+  if (acceptBtn) {
+    acceptBtn.disabled = false;
+    if (alert.status === 'dispatched') {
+      acceptBtn.className = 'btn-primary w-full py-3.5 text-xs uppercase font-mono tracking-wider font-bold shadow-[4px_4px_0px_#111111] flex items-center justify-center gap-2 bg-emerald-600 border-emerald-800 text-white';
+      acceptBtn.innerHTML = `
+        <span class="material-symbols-outlined text-base">check_circle</span>
+        <span>UNIT ALREADY DISPATCHED &bull; EN ROUTE</span>
+      `;
+    } else {
+      acceptBtn.className = 'btn-danger w-full py-3.5 text-xs uppercase font-mono tracking-wider font-bold shadow-[4px_4px_0px_#111111] flex items-center justify-center gap-2';
+      acceptBtn.innerHTML = `
+        <span class="material-symbols-outlined text-base">ambulance</span>
+        <span>ACCEPT DISPATCH &amp; DEPLOY AMBULANCE</span>
+      `;
+    }
+  }
+
+  modal.classList.remove('hidden');
+}
+
+window.closeSosDispatchModal = function() {
+  const modal = document.getElementById('sosDispatchModal');
+  if (modal) modal.classList.add('hidden');
+};
+
+window.inspectSosPatientInTriage = function() {
+  if (!currentSelectedSos) return;
+  closeSosDispatchModal();
+  const input = document.getElementById('patientQrId');
+  if (input) {
+    input.value = currentSelectedSos.qrCodeId || currentSelectedSos.patientId || '';
+    window.searchPatient();
+  }
+};
+
+window.acceptCurrentSosDispatch = async function() {
+  if (!currentSelectedSos && !activeSosId) {
+    showToast('No active emergency SOS selected', 'warning');
+    return;
+  }
+
+  const sos = currentSelectedSos || { sosId: activeSosId, location: activeSosLocation };
+  const sosId = sos.sosId || sos._id;
+
+  const acceptBtn = document.getElementById('dispatchModalAcceptBtn');
+  if (acceptBtn) {
+    acceptBtn.disabled = true;
+    acceptBtn.innerHTML = `
+      <span class="material-symbols-outlined text-base animate-spin">refresh</span>
+      <span>TRANSMITTING DISPATCH ACCEPTANCE...</span>
+    `;
+  }
+
+  try {
+    const dist = (sos.location && typeof sos.location.lat === 'number') 
+      ? calculateDistanceKm(crewLiveCoords.lat, crewLiveCoords.lng, sos.location.lat, sos.location.lng) 
+      : 2.0;
+    const eta = Math.max(2, Math.round(dist * 2.2));
+
+    const response = await crewApiFetch('/sos/accept', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sosId,
+        etaMinutes: eta,
+        crewLocation: crewLiveCoords
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to accept dispatch');
+
+    showToast(`🚨 DISPATCH DEPLOYED: Unit en route (${eta} min ETA)! Patient notified with your contact details.`, 'success', 10000);
+
+    // Draw route line on map
+    if (sos.location && typeof sos.location.lat === 'number') {
+      drawTacticalRouteToIncident(crewLiveCoords, sos.location);
+    }
+
+    if (acceptBtn) {
+      acceptBtn.className = 'btn-primary w-full py-3.5 text-xs uppercase font-mono tracking-wider font-bold shadow-[4px_4px_0px_#111111] flex items-center justify-center gap-2 bg-emerald-600 border-emerald-800 text-white';
+      acceptBtn.innerHTML = `
+        <span class="material-symbols-outlined text-base">check_circle</span>
+        <span>DISPATCH ACCEPTED &bull; UNIT EN ROUTE</span>
+      `;
+    }
+
+    // Dismiss standby popup if visible
+    const popup = document.getElementById('sosAlertPopup');
+    if (popup) popup.classList.add('hidden');
+
+    setTimeout(() => {
+      closeSosDispatchModal();
+    }, 1800);
+
+    loadActiveSosAlerts();
+
+  } catch (err) {
+    showToast(err.message, 'error');
+    if (acceptBtn) {
+      acceptBtn.disabled = false;
+      acceptBtn.innerHTML = `
+        <span class="material-symbols-outlined text-base">ambulance</span>
+        <span>ACCEPT DISPATCH &amp; DEPLOY AMBULANCE</span>
+      `;
+    }
+  }
+};
+
+function drawTacticalRouteToIncident(start, end) {
+  if (!tacticalMapInstance) return;
+  if (tacticalRouteLine) {
+    try { tacticalMapInstance.removeLayer(tacticalRouteLine); } catch (e) {}
+  }
+  tacticalRouteLine = L.polyline([
+    [start.lat, start.lng],
+    [end.lat, end.lng]
+  ], {
+    color: '#E11D2E',
+    weight: 4,
+    opacity: 0.85,
+    dashArray: '8, 8'
+  }).addTo(tacticalMapInstance);
+
+  tacticalMapInstance.fitBounds(tacticalRouteLine.getBounds(), { padding: [40, 40] });
 }
 
 function showSosAlertPopup(data) {
   const popup = document.getElementById('sosAlertPopup');
   if (popup) popup.classList.remove('hidden');
-
-  showToast(`🚨 EMERGENCY: SOS triggered by ${data.name}!`, 'emergency', 10000);
 
   const setTxt = (id, txt) => {
     const el = document.getElementById(id);
@@ -114,8 +1155,8 @@ function showSosAlertPopup(data) {
   setTxt('sosPatBlood', data.bloodGroup || 'N/A');
   setTxt('sosPatAllergies', data.allergies || 'None');
   setTxt('sosPatMessage', data.message || '');
-  setTxt('sosPatLoc', `${data.location.lat.toFixed(4)}, ${data.location.lng.toFixed(4)}`);
   if (data.location && typeof data.location.lat === 'number') {
+    setTxt('sosPatLoc', `${data.location.lat.toFixed(4)}, ${data.location.lng.toFixed(4)}`);
     activeSosLocation = data.location;
   }
 
@@ -123,32 +1164,18 @@ function showSosAlertPopup(data) {
   if (input) input.value = data.patientId;
 }
 
-window.acknowledgeSosAlert = async function() {
-  if (!activeSosId) return;
-  try {
-    const response = await crewApiFetch('/sos/acknowledge', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sosId: activeSosId })
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error);
-
-    showToast('SOS alert acknowledged. Navigation route updated!', 'success');
-    const popup = document.getElementById('sosAlertPopup');
-    if (popup) popup.classList.add('hidden');
-
-    searchPatient();
-  } catch (err) {
-    showToast(err.message, 'error');
-  }
+window.closeSosPopup = function() {
+  const popup = document.getElementById('sosAlertPopup');
+  if (popup) popup.classList.add('hidden');
 };
+
+window.acknowledgeSosAlert = window.acceptCurrentSosDispatch;
 
 window.searchPatient = async function() {
   const input = document.getElementById('patientQrId');
   const qrId = input ? input.value.trim() : '';
   if (!qrId) {
-    showToast('Please enter or scan a Patient QR Code ID (e.g. RAH-D3200470)', 'warning');
+    showToast('Please enter or scan a Patient QR Code ID (e.g. RAH-81E49300)', 'warning');
     return;
   }
 
@@ -161,7 +1188,10 @@ window.searchPatient = async function() {
 
     activePatient = data;
 
-    await logCrewTriageAccess(qrId);
+    // Send crew live GPS coordinates if available to geotag patient's scene scan
+    const scanCoords = (crewLiveCoords && typeof crewLiveCoords.lat === 'number') ? crewLiveCoords : null;
+    await logCrewTriageAccess(qrId, scanCoords);
+
     renderPatientDetails();
     showToast(`Emergency record loaded for ${data.name || qrId}`, 'success');
   } catch (err) {
@@ -170,10 +1200,11 @@ window.searchPatient = async function() {
   }
 };
 
-async function logCrewTriageAccess(qrCodeId) {
+async function logCrewTriageAccess(qrCodeId, coords) {
   try {
     await crewApiFetch(`/patient/log-scan/${encodeURIComponent(qrCodeId)}`, {
-      method: 'POST'
+      method: 'POST',
+      body: JSON.stringify(coords ? { lat: coords.lat, lng: coords.lng } : {})
     });
   } catch (e) {
     console.warn('Failed to log triage scan.');
@@ -212,11 +1243,7 @@ function hidePatientView() {
   if (clearBtn) clearBtn.classList.add('hidden');
   activePatient = null;
   activeSosLocation = null;
-  if (mapInstance) {
-    try { mapInstance.remove(); } catch (e) {}
-    mapInstance = null;
-    mapMarker = null;
-  }
+  clearPatientFromRadar();
 }
 
 window.resetTriageView = function() {
@@ -405,21 +1432,21 @@ function renderPatientDetails() {
       ? activePatient.location
       : (activeSosLocation && typeof activeSosLocation.lat === 'number' && typeof activeSosLocation.lng === 'number' && (activeSosLocation.lat !== 0 || activeSosLocation.lng !== 0))
         ? activeSosLocation
-        : null;
+        : (address && address.trim() && address !== 'Registered Scene Location' && address !== 'N/A' ? resolveCoordinatesFromAddress(address) : null)
+          || (crewLiveCoords && typeof crewLiveCoords.lat === 'number' ? { lat: crewLiveCoords.lat, lng: crewLiveCoords.lng, isSceneScan: true } : null);
 
   if (loc) {
-    renderEmergencyMap(loc.lat, loc.lng, { isLive: true, label: 'Patient Live Satellite Fix' });
+    plotScannedPatientOnRadar(loc.lat, loc.lng, {
+      name,
+      bloodGroup,
+      allergies,
+      qrCodeId,
+      isLive: true,
+      label: loc.label || 'Patient Live Satellite Fix'
+    });
     loadNearbyHospitals(loc.lat, loc.lng);
-  } else if (address && address.trim() && address !== 'Registered Scene Location' && address !== 'N/A') {
-    const addrCoords = resolveCoordinatesFromAddress(address);
-    if (addrCoords) {
-      renderEmergencyMap(addrCoords.lat, addrCoords.lng, { isLive: false, label: addrCoords.label || ('Scene Baseline: ' + address) });
-      loadNearbyHospitals(addrCoords.lat, addrCoords.lng);
-    } else {
-      renderMapStandbyState(name, address);
-    }
   } else {
-    renderMapStandbyState(name, '');
+    clearPatientFromRadar();
   }
 }
 
@@ -453,66 +1480,7 @@ function resolveCoordinatesFromAddress(addr) {
   return null;
 }
 
-function renderMapStandbyState(patientName, address) {
-  const mapEl = document.getElementById('leafletMapContainer') || document.getElementById('emergencyMap');
-  if (!mapEl) return;
 
-  if (mapInstance) {
-    try { mapInstance.remove(); } catch (e) {}
-    mapInstance = null;
-    mapMarker = null;
-  }
-
-  const statusBadge = document.getElementById('mapStatusBadge');
-  if (statusBadge) {
-    statusBadge.className = 'px-2 py-0.5 border border-[#E11D2E] bg-red-50 text-[#E11D2E] text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1';
-    statusBadge.innerHTML = '<span class="live-dot"></span> AWAITING GPS FIX';
-  }
-
-  const subtext = document.getElementById('mapTelemetrySubtext');
-  if (subtext) {
-    subtext.textContent = 'Live satellite GPS coordinates not yet broadcasted by patient';
-  }
-
-  const gmapsBtn = document.getElementById('gmapsNavBtn');
-  if (gmapsBtn) {
-    if (address && address.trim() && address !== 'Registered Scene Location' && address !== 'N/A') {
-      gmapsBtn.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-      gmapsBtn.classList.remove('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
-      gmapsBtn.title = 'Open registered emergency address in Google Maps';
-    } else {
-      gmapsBtn.href = 'javascript:void(0)';
-      gmapsBtn.classList.add('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
-      gmapsBtn.title = 'Awaiting live GPS coordinates';
-    }
-  }
-
-  mapEl.innerHTML = `
-    <div class="w-full h-full bg-[#f9fafb] flex flex-col items-center justify-center p-6 text-center space-y-3.5 select-none">
-      <div class="w-14 h-14 border-2 border-[#111111] bg-white flex items-center justify-center shadow-[4px_4px_0px_#111111]">
-        <span class="material-symbols-outlined text-3xl text-[#E11D2E] animate-pulse">satellite_alt</span>
-      </div>
-      <div class="max-w-md space-y-1">
-        <h4 class="font-black text-sm uppercase text-[#111111]">Awaiting Live Patient GPS Beacon</h4>
-        <p class="text-xs font-sans text-[#111111]/70">
-          ${escapeHtml(patientName || 'This patient')} has not yet transmitted live satellite coordinates via an active SOS alert or mobile location share.
-        </p>
-        ${address && address !== 'Registered Scene Location' && address !== 'N/A' ? `<p class="text-[11px] font-mono font-bold text-[#111111] mt-1.5 bg-white border border-[#111111] p-1.5 shadow-[2px_2px_0px_#111111]">Registered Address: ${escapeHtml(address)}</p>` : ''}
-      </div>
-      <div class="flex items-center gap-2 pt-1 flex-wrap justify-center">
-        <button onclick="window.simulatePatientLocation()" class="btn-primary text-xs px-3.5 py-2 uppercase font-mono font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_#111111]">
-          <span class="material-symbols-outlined text-sm">my_location</span>
-          <span>Simulate Scene Location (EMT Drill)</span>
-        </button>
-        ${address && address !== 'Registered Scene Location' && address !== 'N/A' ? `
-        <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}" target="_blank" class="btn-secondary text-xs px-3.5 py-2 uppercase font-mono font-bold flex items-center gap-1.5">
-          <span class="material-symbols-outlined text-sm">navigation</span>
-          <span>Open Scene Address</span>
-        </a>` : ''}
-      </div>
-    </div>
-  `;
-}
 
 window.simulatePatientLocation = function() {
   if (!activePatient) {
@@ -521,8 +1489,8 @@ window.simulatePatientLocation = function() {
   }
   const address = activePatient.address || (activePatient.user && activePatient.user.address) || '';
   const resolved = resolveCoordinatesFromAddress(address);
-  const lat = resolved ? resolved.lat : 18.9438;
-  const lng = resolved ? resolved.lng : 72.8234;
+  const lat = resolved ? resolved.lat : 18.955;
+  const lng = resolved ? resolved.lng : 72.828;
 
   activePatient.lastLocation = {
     lat,
@@ -586,16 +1554,16 @@ async function loadNearbyHospitals(lat, lng) {
       `;
       container.appendChild(card);
 
-      // Also add marker to main map if possible
-      if (typeof L !== 'undefined' && mapInstance) {
+      // Also add marker to tactical radar map if present
+      if (typeof L !== 'undefined' && tacticalMapInstance) {
         L.marker([h.location.lat, h.location.lng], {
           icon: L.divIcon({
-            className: 'custom-div-icon',
-            html: `<div style='background-color:#14b8a6; width:12px; height:12px; border-radius:50%; border:2px solid white;'></div>`,
-            iconSize: [12, 12],
-            iconAnchor: [6, 6]
+            className: 'custom-hospital-radar-icon',
+            html: `<div style='background-color:#0d9488; width:14px; height:14px; border-radius:50%; border:2px solid #111111; box-shadow: 1px 1px 0px #111111;'></div>`,
+            iconSize: [14, 14],
+            iconAnchor: [7, 7]
           })
-        }).addTo(mapInstance).bindPopup(`<b>${h.name}</b><br><a href="${mapsUrl}" target="_blank">Navigate Now</a>`);
+        }).addTo(tacticalMapInstance).bindPopup(`<b>${escapeHtml(h.name)}</b><br><a href="${mapsUrl}" target="_blank">Navigate ER &rarr;</a>`);
       }
     });
 
@@ -605,121 +1573,12 @@ async function loadNearbyHospitals(lat, lng) {
 }
 
 function renderEmergencyMap(lat, lng, options = {}) {
-  const container = document.getElementById('mapWrapper') || document.getElementById('emergencyMapContainer');
-  if (container) container.classList.remove('hidden');
+  // Directly route to unified tactical radar map!
+  plotScannedPatientOnRadar(lat, lng, options);
+}
 
-  const mapEl = document.getElementById('leafletMapContainer') || document.getElementById('emergencyMap');
-  if (!mapEl) return;
-
-  if (typeof L === 'undefined') {
-    console.warn('Leaflet library not loaded.');
-    mapEl.innerHTML = `
-      <div class="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-[#f9fafb]">
-        <p class="font-black text-sm uppercase text-[#111111]">Map Engine Loading...</p>
-        <p class="text-xs font-mono text-[#111111]/70 mt-1">Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}</p>
-        <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank" class="btn-primary mt-3 text-xs px-3.5 py-1.5 uppercase font-mono font-bold">Open In Google Maps</a>
-      </div>
-    `;
-    return;
-  }
-
-  // Update Status Badge
-  const statusBadge = document.getElementById('mapStatusBadge');
-  if (statusBadge) {
-    if (options.isLive) {
-      statusBadge.className = 'px-2 py-0.5 border border-green-700 bg-green-100 text-green-900 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-[2px_2px_0px_#111111]';
-      statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse"></span> ${options.isSimulated ? 'EMT SIMULATED FIX' : 'LIVE SATELLITE FIX'}`;
-    } else {
-      statusBadge.className = 'px-2 py-0.5 border border-[#111111] bg-amber-100 text-amber-900 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-[2px_2px_0px_#111111]';
-      statusBadge.innerHTML = '<span class="material-symbols-outlined text-xs">home_pin</span> SCENE BASELINE';
-    }
-  }
-
-  // Update Telemetry Subtext
-  const subtext = document.getElementById('mapTelemetrySubtext');
-  if (subtext) {
-    subtext.textContent = `Fix: ${lat.toFixed(5)}, ${lng.toFixed(5)} • ${options.label || 'Patient Live Distress Location'}`;
-  }
-
-  // Update Google Maps button
-  const gmapsBtn = document.getElementById('gmapsNavBtn');
-  if (gmapsBtn) {
-    gmapsBtn.href = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-    gmapsBtn.classList.remove('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
-    gmapsBtn.title = 'Open turn-by-turn navigation in Google Maps';
-  }
-
-  // Safe re-initialization of Leaflet
-  if (mapInstance) {
-    try {
-      mapInstance.remove();
-    } catch (e) {}
-    mapInstance = null;
-    mapMarker = null;
-  }
-  mapEl.innerHTML = '';
-
-  try {
-    mapInstance = L.map(mapEl, {
-      zoomControl: true,
-      scrollWheelZoom: false
-    }).setView([lat, lng], 14);
-
-    // High-clarity free OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(mapInstance);
-
-    // High-impact Swiss Editorial Pulsing Emergency Beacon Marker
-    const emergencyIcon = L.divIcon({
-      className: 'custom-emergency-beacon',
-      html: `
-        <div style="position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
-          <span style="position: absolute; width: 100%; height: 100%; border-radius: 50%; background: rgba(225, 29, 46, 0.4); animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
-          <div style="position: relative; width: 26px; height: 26px; background: #E11D2E; border: 2px solid #111111; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px #111111;">
-            <span class="material-symbols-outlined" style="color: white; font-size: 15px; line-height: 1;">emergency</span>
-          </div>
-        </div>
-      `,
-      iconSize: [36, 36],
-      iconAnchor: [18, 18],
-      popupAnchor: [0, -18]
-    });
-
-    const patName = activePatient ? (activePatient.name || 'Emergency Patient') : 'Patient';
-    mapMarker = L.marker([lat, lng], { icon: emergencyIcon }).addTo(mapInstance)
-      .bindPopup(`
-        <div style="font-family: Archivo, sans-serif; padding: 4px 2px; min-width: 150px;">
-          <span style="display: inline-block; font-size: 9px; font-family: monospace; font-weight: bold; background: #E11D2E; color: white; padding: 1px 5px; border: 1px solid #111111; text-transform: uppercase;">
-            ${options.isLive ? 'Live Beacon' : 'Scene Address'}
-          </span>
-          <p style="font-weight: 900; font-size: 13px; text-transform: uppercase; margin-top: 5px; color: #111111; line-height: 1.2;">
-            ${escapeHtml(patName)}
-          </p>
-          <p style="font-size: 10px; font-family: monospace; color: #555; margin-top: 3px;">
-            ${lat.toFixed(5)}, ${lng.toFixed(5)}
-          </p>
-          <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank" style="display: inline-block; margin-top: 8px; font-size: 10px; font-weight: bold; color: #E11D2E; text-decoration: underline; text-transform: uppercase; font-family: monospace;">
-            Open Google Maps &rarr;
-          </a>
-        </div>
-      `)
-      .openPopup();
-
-    setTimeout(() => {
-      if (mapInstance) mapInstance.invalidateSize();
-    }, 250);
-  } catch (err) {
-    console.error('Failed to initialize Leaflet map:', err);
-    mapEl.innerHTML = `
-      <div class="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-[#f9fafb]">
-        <p class="font-black text-sm uppercase text-[#111111]">Map Display Error</p>
-        <p class="text-xs font-mono text-[#111111]/70 mt-1">${escapeHtml(err.message)}</p>
-        <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank" class="btn-primary mt-3 text-xs px-3.5 py-1.5 uppercase font-mono font-bold">Open In Google Maps</a>
-      </div>
-    `;
-  }
+function renderMapStandbyState(patientName, address) {
+  clearPatientFromRadar();
 }
 
 function setupCrewListeners() {

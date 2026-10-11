@@ -247,6 +247,36 @@
       </div>
     </div>
 
+    <!-- Real-time Ambulance Dispatched Persistent Alert Banner -->
+    <div id="sosDispatchedTopBanner" class="hidden mb-6 p-4 bg-red-50 border-2 border-[#E11D2E] shadow-[4px_4px_0px_#E11D2E] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-200">
+      <div class="flex items-start sm:items-center gap-3.5">
+        <div class="w-11 h-11 border-2 border-[#E11D2E] bg-white text-[#E11D2E] flex items-center justify-center flex-shrink-0 shadow-[2px_2px_0px_#111111]">
+          <span class="material-symbols-outlined text-2xl animate-pulse">ambulance</span>
+        </div>
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-100 border border-emerald-700 text-emerald-900 text-[10px] font-mono font-bold uppercase mb-0.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping"></span>
+            <span>AMBULANCE DISPATCHED &bull; EN ROUTE</span>
+          </div>
+          <h4 class="font-black text-sm text-[#111111] uppercase tracking-tight">
+            Ambulance Unit <span id="bannerVehicleNumber" class="text-[#E11D2E]">En Route</span> &bull; Paramedic: <span id="bannerCrewName" class="text-[#111111]">-</span>
+          </h4>
+          <p class="text-xs text-[#111111]/70 font-mono mt-0.5">
+            Direct Line: <strong id="bannerCrewPhone" class="text-[#E11D2E] font-bold">-</strong> &bull; ETA: <span id="bannerEta" class="font-bold text-emerald-800">~4 Mins</span>
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 w-full md:w-auto flex-shrink-0">
+        <a id="bannerCallBtn" href="tel:" class="btn-danger flex-1 md:flex-initial px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_#111111]">
+          <span class="material-symbols-outlined text-sm">call</span>
+          <span>Call Paramedic</span>
+        </a>
+        <button onclick="reopenSosDispatchedModal()" class="btn-secondary px-3 py-2 text-xs font-mono font-bold uppercase">
+          Details
+        </button>
+      </div>
+    </div>
+
     <!-- Skeletons Loader State -->
     <div class="grid lg:grid-cols-3 gap-6 dashboard-skeleton">
       <div class="lg:col-span-1 border-2 border-[#111111] bg-gray-100 p-6 h-96 animate-pulse"></div>
@@ -943,6 +973,67 @@
         <button type="button" id="applyCropBtn" onclick="applyAndUploadCrop()" class="btn-primary px-5 py-2.5 text-xs font-mono uppercase font-bold flex items-center gap-1.5 shadow-[3px_3px_0px_#111111]">
           <span class="material-symbols-outlined text-sm">crop</span>
           <span>Crop &amp; Save (1080&times;1080)</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Real-time Ambulance Dispatched Notification Modal -->
+  <div id="sosDispatchedModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto no-print">
+    <div class="editorial-card-red max-w-lg w-full p-6 sm:p-8 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+      
+      <div class="flex items-center gap-3 text-[#E11D2E] pb-3 border-b-2 border-[#111111]">
+        <div class="w-12 h-12 border-2 border-[#E11D2E] bg-red-50 flex items-center justify-center flex-shrink-0 shadow-[2px_2px_0px_#111111]">
+          <span class="material-symbols-outlined text-3xl animate-pulse text-[#E11D2E]">ambulance</span>
+        </div>
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-100 border border-emerald-700 text-emerald-900 text-[10px] font-mono font-bold uppercase mb-0.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping"></span>
+            <span>DISPATCH ACCEPTED &bull; EN ROUTE</span>
+          </div>
+          <h3 class="font-black text-xl text-[#111111] uppercase tracking-tight">Ambulance Dispatched!</h3>
+          <p class="text-xs font-mono text-[#E11D2E] font-bold uppercase">First responder deployed to your GPS location</p>
+        </div>
+      </div>
+
+      <!-- Paramedic Crew Details Card -->
+      <div class="bg-[#f9fafb] border-2 border-[#111111] p-4 space-y-3 font-mono text-xs shadow-[3px_3px_0px_#111111]">
+        <div class="flex justify-between items-center pb-2 border-b border-[#111111]/20">
+          <span class="text-[#111111]/70 font-bold uppercase">Paramedic In Charge:</span>
+          <span id="dispatchedCrewName" class="font-black text-sm text-[#111111] uppercase">-</span>
+        </div>
+        <div class="flex justify-between items-center pb-2 border-b border-[#111111]/20">
+          <span class="text-[#111111]/70 font-bold uppercase">Crew Contact Phone:</span>
+          <span id="dispatchedCrewPhone" class="font-black text-sm text-[#E11D2E]">-</span>
+        </div>
+        <div class="flex justify-between items-center pb-2 border-b border-[#111111]/20">
+          <span class="text-[#111111]/70 font-bold uppercase">Ambulance Vehicle:</span>
+          <span id="dispatchedVehicleNumber" class="font-black text-xs text-[#111111] uppercase bg-white px-2 py-0.5 border border-[#111111]">-</span>
+        </div>
+        <div class="flex justify-between items-center pb-2 border-b border-[#111111]/20">
+          <span class="text-[#111111]/70 font-bold uppercase">Station / Base:</span>
+          <span id="dispatchedStation" class="font-bold text-[#111111]">-</span>
+        </div>
+        <div class="flex justify-between items-center pt-1">
+          <span class="text-[#111111]/70 font-bold uppercase">Estimated Arrival (ETA):</span>
+          <span id="dispatchedEta" class="font-black text-sm text-emerald-800 bg-emerald-100 px-2 py-0.5 border border-emerald-700">~4 MINS</span>
+        </div>
+      </div>
+
+      <!-- Call Responder 1-Tap CTA -->
+      <div class="space-y-3 pt-1">
+        <a id="callCrewBtn" href="tel:" class="btn-danger w-full py-4 text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-[4px_4px_0px_#111111] active:translate-x-0.5 active:translate-y-0.5">
+          <span class="material-symbols-outlined text-lg">call</span>
+          <span>CALL AMBULANCE CREW DIRECTLY</span>
+        </a>
+
+        <div class="p-3 bg-amber-50 border border-amber-600 text-[11px] font-sans text-amber-900 font-medium">
+          <strong>Safety Directive:</strong> Stay in a safe, visible location. Responders have received your medical profile, blood group, and emergency allergies. Keep your phone line reachable.
+        </div>
+
+        <button onclick="closeSosDispatchedModal()" class="btn-secondary w-full py-2.5 text-xs font-mono uppercase tracking-wider font-bold">
+          Keep Tracking in Background
         </button>
       </div>
 

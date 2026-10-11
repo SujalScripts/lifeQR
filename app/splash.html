@@ -1,227 +1,1158 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="theme-color" content="#ffffff">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="icon" href="LifeQR.png" type="image/png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0a0a">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="lifeqr_transparent.png" type="image/png">
+  <title>LifeQR — Emergency Health Network</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Black&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <title>LifeQR — Initializing Secure Network</title>
+  <style>
+    /* ═══════════════════════════════════════════════════════════
+       LIFEQR BRAND TOKENS & MOTION AS CODE SYSTEM
+       Color grading strictly matched to LifeQR App:
+       - Deep Ink Canvas: #0a0a0a (matches patient-app.css --bg-app)
+       - LifeQR Emergency Red: #E11D2E (matches --emergency)
+       - LifeQR Tech Blue: #2563EB (matches QR blue identity)
+       - Swiss Bone White: #FFFFFF
+       - Technical Grid / Slate: #1e293b & #0f172a
+    ═════════════════════════════════════════════════════════════ */
+    :root {
+      --bg:           #0a0a0a;
+      --surface:      #111622;
+      --red:          #E11D2E;
+      --red-glow:     rgba(225, 29, 46, 0.45);
+      --red-dim:      rgba(225, 29, 46, 0.15);
+      --blue:         #2563EB;
+      --blue-glow:    rgba(37, 99, 235, 0.45);
+      --blue-dim:     rgba(37, 99, 235, 0.15);
+      --white:        #ffffff;
+      --text-muted:   rgba(255, 255, 255, 0.65);
+      --text-dim:     rgba(255, 255, 255, 0.35);
+      --border:       rgba(255, 255, 255, 0.08);
+      --border-blue:  rgba(37, 99, 235, 0.35);
+      --border-red:   rgba(225, 29, 46, 0.35);
+      --mono:         'JetBrains Mono', monospace;
+      --headline:     'Archivo Black', 'Archivo', sans-serif;
+      --body:         'Archivo', sans-serif;
+    }
 
-    <!-- Google Fonts & Material Symbols -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Black&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,200..700,0..1,-50..200" rel="stylesheet">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="styles.css">
-    <script src="api-utils.js"></script>
-    <script src="js/theme.js"></script>
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+    }
 
-    <script>
-      (function(){
-        try {
-          var m = localStorage.getItem('lifeqr_theme_manual');
-          var sys = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-          document.documentElement.setAttribute('data-theme', m || sys);
-        } catch(e){}
-      })();
-    </script>
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: var(--body);
+      color: var(--white);
+      user-select: none;
+      -webkit-user-select: none;
+      position: relative;
+    }
 
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-        body {
-            font-family: 'Archivo', system-ui, -apple-system, sans-serif;
-            background: #ffffff;
-            color: #111111;
-        }
-        .font-black {
-            font-family: 'Archivo Black', 'Archivo', sans-serif;
-        }
-        .font-mono {
-            font-family: 'JetBrains Mono', monospace;
-        }
-        .pulse-ring {
-            animation: pulse-ring 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-        }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.85); opacity: 0.8; }
-            100% { transform: scale(1.4); opacity: 0; }
-        }
-        .live-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 999px;
-            background: #E11D2E;
-            animation: blink 1.4s ease-in-out infinite;
-        }
-        @keyframes blink {
-            50% { opacity: 0.25; }
-        }
-        .editorial-box {
-            border: 2px solid #111111;
-            box-shadow: 6px 6px 0px #111111;
-        }
-        .shimmer-bar {
-            background: linear-gradient(90deg, #111111 0%, #E11D2E 50%, #111111 100%);
-            background-size: 200% 100%;
-            animation: shimmer 1.8s infinite linear;
-        }
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
+    /* ─── PROCEDURAL CANVAS (Graph Paper, Sparks, Radar, EKG) ─ */
+    #motionCanvas {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      z-index: 1; pointer-events: none;
+    }
 
-        /* Dark Mode Overrides */
-        [data-theme="dark"] body {
-            background: #0a0a0a !important;
-            color: #ffffff !important;
-        }
-        [data-theme="dark"] .bg-white {
-            background-color: #111111 !important;
-        }
-        [data-theme="dark"] .text-\[\#111111\] {
-            color: #ffffff !important;
-        }
-        [data-theme="dark"] .text-\[\#111111\]\/50,
-        [data-theme="dark"] .text-\[\#111111\]\/60,
-        [data-theme="dark"] .text-\[\#111111\]\/80 {
-            color: #94a3b8 !important;
-        }
-        [data-theme="dark"] .border-\[\#111111\] {
-            border-color: #262626 !important;
-        }
-        [data-theme="dark"] .shadow-\[6px_6px_0px_\#111111\] {
-            box-shadow: 6px 6px 0px #000000 !important;
-        }
-    </style>
+    /* ─── OPTICAL FILM GRAIN & AMBIENT VIGNETTE ─────────────── */
+    .film-grain {
+      position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 240px 240px;
+      animation: grainShift 0.08s steps(1) infinite;
+    }
+    @keyframes grainShift {
+      0%   { background-position: 0 0; }
+      25%  { background-position: 25px -15px; }
+      50%  { background-position: -15px 35px; }
+      75%  { background-position: 30px 20px; }
+    }
+
+    .ambient-vignette {
+      position: fixed; inset: 0; z-index: 2; pointer-events: none;
+      background: radial-gradient(circle at 50% 50%,
+        rgba(15, 23, 42, 0.4) 0%,
+        rgba(10, 10, 10, 0.85) 65%,
+        #0a0a0a 100%);
+    }
+
+    /* ─── CORNER TECHNICAL TICKS ────────────────────────────── */
+    .corner-tick {
+      position: fixed; width: 22px; height: 22px; z-index: 20; pointer-events: none;
+    }
+    .corner-tick::before, .corner-tick::after {
+      content: ''; position: absolute; background: rgba(255, 255, 255, 0.25);
+    }
+    .ct-tl { top: 16px; left: 16px; }
+    .ct-tl::before { top: 0; left: 0; width: 2px; height: 100%; background: var(--blue); }
+    .ct-tl::after  { top: 0; left: 0; width: 100%; height: 2px; background: var(--blue); }
+
+    .ct-tr { top: 16px; right: 16px; }
+    .ct-tr::before { top: 0; right: 0; width: 2px; height: 100%; background: var(--red); }
+    .ct-tr::after  { top: 0; right: 0; width: 100%; height: 2px; background: var(--red); }
+
+    .ct-bl { bottom: 16px; left: 16px; }
+    .ct-bl::before { bottom: 0; left: 0; width: 2px; height: 100%; background: var(--red); }
+    .ct-bl::after  { bottom: 0; left: 0; width: 100%; height: 2px; background: var(--red); }
+
+    .ct-br { bottom: 16px; right: 16px; }
+    .ct-br::before { bottom: 0; right: 0; width: 2px; height: 100%; background: var(--blue); }
+    .ct-br::after  { bottom: 0; right: 0; width: 100%; height: 2px; background: var(--blue); }
+
+    /* ─── HEADER BAR (Swiss Editorial) ──────────────────────── */
+    .top-telemetry-bar {
+      position: fixed; top: 0; left: 0; right: 0; height: 50px; z-index: 30;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; pointer-events: none;
+      background: linear-gradient(180deg, rgba(10, 10, 10, 0.95) 0%, transparent 100%);
+    }
+    .time-indicator {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      color: var(--text-dim); letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;
+    }
+    .time-pulse {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--blue);
+      box-shadow: 0 0 10px var(--blue);
+      animation: pulseGlow 1.4s ease-in-out infinite alternate;
+    }
+    @keyframes pulseGlow {
+      from { opacity: 0.4; transform: scale(0.85); }
+      to   { opacity: 1; transform: scale(1.2); }
+    }
+    .sys-badge {
+      font-family: var(--mono); font-size: 9px; font-weight: 800;
+      letter-spacing: 2px; text-transform: uppercase;
+      padding: 3px 10px; border-radius: 4px;
+      background: rgba(37, 99, 235, 0.1);
+      border: 1px solid var(--border-blue);
+      color: #60a5fa; display: flex; align-items: center; gap: 6px;
+    }
+    .sys-badge-dot {
+      width: 5px; height: 5px; border-radius: 50%; background: var(--red);
+      box-shadow: 0 0 6px var(--red);
+    }
+
+    /* ─── STAGE CONTAINER (Centered Viewport) ───────────────── */
+    .stage-container {
+      position: fixed; inset: 0; z-index: 10;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+
+    .plate {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      opacity: 0; transform: scale(0.95);
+      visibility: hidden; pointer-events: none;
+      transition: opacity 0.22s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s;
+    }
+    .plate.active {
+      opacity: 1; transform: scale(1);
+      visibility: visible; pointer-events: auto;
+    }
+    .plate.exit {
+      opacity: 0; transform: scale(1.04);
+      visibility: hidden; pointer-events: none;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       PLATE 01: SIGNAL ACQUISITION & OPTICAL RETICLE
+    ═════════════════════════════════════════════════════════════ */
+    .reticle-scope {
+      position: relative; width: 170px; height: 170px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .scope-ring {
+      position: absolute; border-radius: 50%;
+      border: 1px solid rgba(37, 99, 235, 0.25);
+    }
+    .sr-outer {
+      inset: 0;
+      border: 1.5px dashed rgba(37, 99, 235, 0.4);
+      animation: spinClockwise 12s linear infinite;
+    }
+    .sr-mid {
+      inset: 22px;
+      border: 1px solid rgba(225, 29, 46, 0.3);
+      animation: spinCounter 7s linear infinite;
+    }
+    .sr-inner {
+      inset: 44px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      animation: spinClockwise 18s linear infinite;
+    }
+    @keyframes spinClockwise { to { transform: rotate(360deg); } }
+    @keyframes spinCounter   { to { transform: rotate(-360deg); } }
+
+    /* Reticle axes */
+    .scope-axis-h {
+      position: absolute; left: 0; right: 0; top: 50%; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(37,99,235,0.6) 20%, rgba(225,29,46,0.8) 50%, rgba(37,99,235,0.6) 80%, transparent);
+      transform: translateY(-50%);
+    }
+    .scope-axis-v {
+      position: absolute; top: 0; bottom: 0; left: 50%; width: 1px;
+      background: linear-gradient(180deg, transparent, rgba(37,99,235,0.6) 20%, rgba(225,29,46,0.8) 50%, rgba(37,99,235,0.6) 80%, transparent);
+      transform: translateX(-50%);
+    }
+
+    .reticle-core {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--red); z-index: 5;
+      box-shadow: 0 0 20px var(--red), 0 0 40px var(--red-glow);
+      animation: coreBeacon 0.9s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
+    }
+    @keyframes coreBeacon {
+      from { transform: scale(0.85); box-shadow: 0 0 12px var(--red); }
+      to   { transform: scale(1.3);  box-shadow: 0 0 28px var(--red), 0 0 55px var(--red-glow); }
+    }
+
+    .plate-caption {
+      margin-top: 28px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    .plate-title {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      letter-spacing: 3.5px; color: #93c5fd; text-transform: uppercase;
+    }
+    .plate-subtitle {
+      font-family: var(--mono); font-size: 8.5px; font-weight: 600;
+      letter-spacing: 1.5px; color: var(--text-dim); text-transform: uppercase;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       PLATE 02: KINETIC WORDMARK (LifeQR Identity)
+    ═════════════════════════════════════════════════════════════ */
+    .wordmark-stage {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .wordmark-bloom {
+      position: absolute; width: 320px; height: 120px;
+      background: radial-gradient(ellipse, rgba(37, 99, 235, 0.28) 0%, rgba(225, 29, 46, 0.18) 45%, transparent 75%);
+      filter: blur(35px); pointer-events: none;
+      opacity: 0; transition: opacity 0.6s ease;
+    }
+    .plate.active .wordmark-bloom { opacity: 1; }
+
+    .wm-row {
+      display: flex; align-items: baseline; justify-content: center;
+      line-height: 0.9;
+    }
+    .wm-letter {
+      font-family: var(--headline);
+      font-size: clamp(64px, 14vw, 100px);
+      letter-spacing: -2px;
+      display: inline-block;
+      opacity: 0; transform: translateY(40px) scale(0.9);
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .wm-letter.life {
+      color: var(--white);
+    }
+    .wm-letter.qr {
+      color: var(--blue);
+      text-shadow: 0 0 35px var(--blue-glow);
+    }
+    .wm-letter.on {
+      opacity: 1; transform: translateY(0) scale(1);
+    }
+
+    .wm-accent-bar {
+      width: 0%; height: 3px;
+      background: linear-gradient(90deg, var(--white) 0%, var(--blue) 50%, var(--red) 100%);
+      margin-top: 14px; border-radius: 2px;
+      box-shadow: 0 0 15px var(--blue-glow);
+      transition: width 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+    }
+    .plate.active .wm-accent-bar { width: 100%; }
+
+    .wm-descriptor {
+      margin-top: 14px;
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 4px; color: var(--text-muted); text-transform: uppercase;
+      opacity: 0; transform: translateY(10px);
+      transition: opacity 0.45s ease 0.5s, transform 0.45s ease 0.5s;
+    }
+    .plate.active .wm-descriptor { opacity: 1; transform: translateY(0); }
+
+    /* ═══════════════════════════════════════════════════════════
+       PLATE 03: EMERGENCY VAULT & TELEMETRY HUD
+    ═════════════════════════════════════════════════════════════ */
+    .hud-stage {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 100%; max-width: 360px;
+    }
+
+    /* Crisp Vector LifeQR Hologram Emblem */
+    .emblem-wrapper {
+      position: relative; width: 96px; height: 96px; margin-bottom: 22px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .emblem-halo {
+      position: absolute; inset: -15px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(37, 99, 235, 0.35) 0%, rgba(225, 29, 46, 0.2) 50%, transparent 75%);
+      filter: blur(14px);
+      animation: haloBreath 2.4s ease-in-out infinite alternate;
+    }
+    @keyframes haloBreath {
+      from { opacity: 0.4; transform: scale(0.9); }
+      to   { opacity: 0.9; transform: scale(1.15); }
+    }
+    .emblem-ring-rot {
+      position: absolute; inset: -8px; border-radius: 50%;
+      border: 1.5px solid transparent;
+      border-top-color: var(--blue);
+      border-right-color: var(--blue);
+      animation: spinClockwise 3s linear infinite;
+    }
+    .emblem-ring-rev {
+      position: absolute; inset: -14px; border-radius: 50%;
+      border: 1px solid transparent;
+      border-bottom-color: rgba(225, 29, 46, 0.5);
+      border-left-color: rgba(225, 29, 46, 0.5);
+      animation: spinCounter 5s linear infinite;
+    }
+
+    /* Vector Emblem Card */
+    .vector-emblem {
+      width: 100%; height: 100%;
+      position: relative; z-index: 2;
+      filter: drop-shadow(0 4px 20px rgba(37, 99, 235, 0.35));
+    }
+
+    /* Brand typography in HUD */
+    .hud-brand {
+      display: flex; align-items: center; gap: 2px;
+      font-family: var(--headline); font-size: 26px; line-height: 1;
+      margin-bottom: 4px;
+    }
+    .hud-brand-life { color: var(--white); }
+    .hud-brand-qr   { color: var(--blue); text-shadow: 0 0 20px var(--blue-glow); }
+    .hud-sub-label {
+      font-family: var(--mono); font-size: 8.5px; font-weight: 700;
+      letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+
+    /* Precision Telemetry Card */
+    .telemetry-card {
+      width: 100%;
+      background: rgba(17, 22, 34, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 16px 18px;
+      display: flex; flex-direction: column; gap: 12px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    .tc-header {
+      display: flex; align-items: center; justify-content: space-between;
+      font-family: var(--mono); font-size: 9.5px; font-weight: 700;
+      text-transform: uppercase;
+    }
+    .tc-left {
+      display: flex; align-items: center; gap: 8px;
+      color: #93c5fd; overflow: hidden;
+    }
+    .tc-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--red);
+      box-shadow: 0 0 10px var(--red); flex-shrink: 0;
+      animation: pulseGlow 0.8s ease-in-out infinite alternate;
+    }
+    .tc-status-text {
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      letter-spacing: 0.5px;
+    }
+    .tc-percentage {
+      font-family: var(--mono); font-size: 11px; font-weight: 800;
+      color: var(--white); flex-shrink: 0; margin-left: 10px;
+    }
+
+    /* Track & Fill */
+    .tc-track {
+      width: 100%; height: 5px; border-radius: 3px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      overflow: hidden; position: relative;
+    }
+    .tc-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #1e3a8a, var(--blue), var(--red), #f87171);
+      box-shadow: 0 0 12px var(--blue-glow);
+      border-radius: 3px;
+      position: relative;
+      transition: width 0.08s ease-out;
+    }
+    .tc-fill::after {
+      content: ''; position: absolute; top: 0; right: 0; width: 30px; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+      animation: fillShimmer 0.8s ease infinite;
+    }
+    @keyframes fillShimmer {
+      0%   { transform: translateX(-30px); }
+      100% { transform: translateX(20px); }
+    }
+
+    /* Micro telemetry grid */
+    .tc-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      padding-top: 4px; border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .tc-cell {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .tc-cell-k {
+      font-family: var(--mono); font-size: 7.5px; font-weight: 600;
+      letter-spacing: 1.5px; color: var(--text-dim); text-transform: uppercase;
+    }
+    .tc-cell-v {
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* ─── FOOTER BAR (Platform Status) ───────────────────────── */
+    .bottom-telemetry-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; height: 54px; z-index: 30;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; pointer-events: none;
+      background: linear-gradient(0deg, rgba(10, 10, 10, 0.95) 0%, transparent 100%);
+    }
+    .bt-meta {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .bt-meta-k {
+      font-family: var(--mono); font-size: 7.5px; font-weight: 600;
+      letter-spacing: 1.5px; color: var(--text-dim); text-transform: uppercase;
+    }
+    .bt-meta-v {
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      color: var(--text-muted);
+    }
+    .bt-badge {
+      display: flex; align-items: center; gap: 6px;
+      border: 1px solid var(--border-red);
+      background: rgba(225, 29, 46, 0.08);
+      padding: 4px 10px; border-radius: 4px;
+    }
+    .bt-badge-cross {
+      color: var(--red); font-size: 11px; font-weight: 900; line-height: 1;
+    }
+    .bt-badge-txt {
+      font-family: var(--mono); font-size: 8px; font-weight: 800;
+      letter-spacing: 1.5px; color: var(--red); text-transform: uppercase;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       MOTION AS CODE — PREVIEW & TIMELINE SCRUBBER
+    ═════════════════════════════════════════════════════════════ */
+    .preview-hud {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 80;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      border-radius: 12px;
+      padding: 10px 16px;
+      display: flex; flex-direction: column; gap: 8px;
+      width: min(520px, 92vw);
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.8), 0 0 15px rgba(37, 99, 235, 0.25);
+    }
+    .preview-top-row {
+      display: flex; align-items: center; justify-content: space-between;
+      font-family: var(--mono); font-size: 9.5px;
+    }
+    .pt-info {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .pt-badge {
+      background: var(--blue); color: #fff; font-weight: 800;
+      padding: 2px 6px; border-radius: 3px; font-size: 8px;
+    }
+    .pt-time {
+      font-weight: 700; color: #93c5fd;
+    }
+    .preview-controls {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .p-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff; font-family: var(--mono); font-size: 9px; font-weight: 700;
+      padding: 4px 8px; border-radius: 4px; cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .p-btn:hover {
+      background: rgba(37, 99, 235, 0.3); border-color: var(--blue);
+    }
+    .p-btn.active {
+      background: var(--blue); border-color: var(--blue);
+    }
+    .preview-scrubber {
+      width: 100%;
+      accent-color: var(--blue);
+      cursor: pointer;
+      height: 4px;
+    }
+    .preview-plates-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    }
+    .plate-tab {
+      flex: 1; text-align: center;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-dim); font-family: var(--mono); font-size: 8.5px; font-weight: 700;
+      padding: 4px 6px; border-radius: 4px; cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .plate-tab.active {
+      background: rgba(37, 99, 235, 0.25);
+      border-color: var(--blue);
+      color: #93c5fd;
+    }
+
+    /* Tap anywhere skip prompt (only visible when not in preview mode) */
+    .tap-skip-hint {
+      position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%);
+      font-family: var(--mono); font-size: 8px; font-weight: 600;
+      letter-spacing: 2px; color: rgba(255, 255, 255, 0.25); text-transform: uppercase;
+      z-index: 25; pointer-events: none; opacity: 0;
+      animation: fadeIn 0.5s ease 1.5s forwards;
+    }
+    @keyframes fadeIn { to { opacity: 1; } }
+  </style>
 </head>
-<body class="h-screen w-screen overflow-hidden flex flex-col justify-between p-6 sm:p-10 select-none">
+<body>
 
-    <!-- Top Telemetry Header -->
-    <div class="w-full flex items-center justify-between font-mono text-[11px] text-[#111111]">
-        <div class="flex items-center gap-2">
-            <span class="live-dot"></span>
-            <span class="font-bold tracking-widest uppercase">INITIALIZING LIFEQR NETWORK</span>
-        </div>
-        <div class="hidden sm:block text-[#111111]/50 font-bold uppercase tracking-wider">
-            AES-256 GCM ZERO-KNOWLEDGE
-        </div>
+  <!-- Procedural Motion Graphics Canvas (deterministic 60fps) -->
+  <canvas id="motionCanvas"></canvas>
+  <div class="ambient-vignette" aria-hidden="true"></div>
+  <div class="film-grain" aria-hidden="true"></div>
+
+  <!-- Technical Corner Brackets -->
+  <div class="corner-tick ct-tl" aria-hidden="true"></div>
+  <div class="corner-tick ct-tr" aria-hidden="true"></div>
+  <div class="corner-tick ct-bl" aria-hidden="true"></div>
+  <div class="corner-tick ct-br" aria-hidden="true"></div>
+
+  <!-- Top Telemetry Bar -->
+  <header class="top-telemetry-bar" aria-hidden="true">
+    <div class="time-indicator">
+      <span class="time-pulse"></span>
+      <span id="telemetryClock">09:41 AM</span>
     </div>
+    <div class="sys-badge">
+      <span class="sys-badge-dot"></span>
+      <span>LIFEQR // SECURE NETWORK</span>
+    </div>
+  </header>
 
-    <!-- Center Logo & Branding -->
-    <div class="flex-1 flex flex-col items-center justify-center text-center">
+  <!-- ═══════════════════════════════════════════════════════════
+       STAGE: MOTION AS CODE PLATES
+  ═════════════════════════════════════════════════════════════ -->
+  <main class="stage-container" id="stageMain">
+
+    <!-- ─── PLATE 01: SIGNAL ACQUISITION (0.0s – 0.9s) ─── -->
+    <section class="plate" id="plate-reticle" aria-label="Signal Acquisition">
+      <div class="reticle-scope">
+        <div class="scope-ring sr-outer"></div>
+        <div class="scope-ring sr-mid"></div>
+        <div class="scope-ring sr-inner"></div>
+        <div class="scope-axis-h"></div>
+        <div class="scope-axis-v"></div>
+        <div class="reticle-core"></div>
+      </div>
+      <div class="plate-caption">
+        <div class="plate-title" id="reticleStatus">ACQUIRING EMERGENCY SIGNAL…</div>
+        <div class="plate-subtitle">GPS MESH TELEMETRY // 2–3 KM RADIUS</div>
+      </div>
+    </section>
+
+    <!-- ─── PLATE 02: KINETIC WORDMARK (0.9s – 1.9s) ─── -->
+    <section class="plate" id="plate-wordmark" aria-label="LifeQR Brand Identity">
+      <div class="wordmark-stage">
+        <div class="wordmark-bloom" aria-hidden="true"></div>
+        <div class="wm-row">
+          <span class="wm-letter life" data-i="0">L</span>
+          <span class="wm-letter life" data-i="1">I</span>
+          <span class="wm-letter life" data-i="2">F</span>
+          <span class="wm-letter life" data-i="3">E</span>
+          <span class="wm-letter qr"   data-i="4">Q</span>
+          <span class="wm-letter qr"   data-i="5">R</span>
+        </div>
+        <div class="wm-accent-bar" aria-hidden="true"></div>
+        <p class="wm-descriptor">ZERO-LATENCY EMERGENCY SYSTEM</p>
+      </div>
+    </section>
+
+    <!-- ─── PLATE 03: EMERGENCY VAULT & TELEMETRY (1.9s – 3.2s) ─── -->
+    <section class="plate" id="plate-vault" aria-label="Emergency Vault Loading">
+      <div class="hud-stage">
         
-        <!-- Animated Icon Container -->
-        <div class="relative mb-8">
-            <div class="absolute inset-0 bg-[#E11D2E]/20 border-2 border-[#E11D2E] pulse-ring"></div>
-            <div class="relative w-24 h-24 sm:w-28 sm:h-28 bg-white border-2 border-[#111111] shadow-[6px_6px_0px_#111111] flex items-center justify-center">
-                <span class="material-symbols-outlined text-[#E11D2E]" style="font-size: 54px;">
-                    medical_services
-                </span>
-            </div>
+        <!-- Crisp Vector SVG Hologram Badge -->
+        <div class="emblem-wrapper" aria-hidden="true">
+          <div class="emblem-halo"></div>
+          <div class="emblem-ring-rot"></div>
+          <div class="emblem-ring-rev"></div>
+          <svg class="vector-emblem" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Sleek Glass Base -->
+            <rect x="8" y="8" width="144" height="144" rx="26" fill="#111625" stroke="#1E293B" stroke-width="2.5"/>
+            <!-- Top Left Finder Pattern -->
+            <rect x="22" y="22" width="34" height="34" rx="7" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+            <rect x="31" y="31" width="16" height="16" rx="3.5" fill="#E11D2E"/>
+            <!-- Top Right Finder Pattern -->
+            <rect x="104" y="22" width="34" height="34" rx="7" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+            <rect x="113" y="31" width="16" height="16" rx="3.5" fill="#2563EB"/>
+            <!-- Bottom Left Finder Pattern -->
+            <rect x="22" y="104" width="34" height="34" rx="7" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+            <rect x="31" y="113" width="16" height="16" rx="3.5" fill="#2563EB"/>
+            <!-- Center Cross Shield with EKG Pulse -->
+            <circle cx="80" cy="80" r="28" fill="#0A0E17" stroke="#2563EB" stroke-width="1.8"/>
+            <path d="M63 80 L71 80 L75 70 L80 90 L85 75 L88 80 L97 80" stroke="#E11D2E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- Matrix Data Bits -->
+            <rect x="68" y="26" width="7" height="7" rx="1.5" fill="#3B82F6" opacity="0.9"/>
+            <rect x="85" y="26" width="7" height="7" rx="1.5" fill="#FFFFFF" opacity="0.75"/>
+            <rect x="26" y="68" width="7" height="7" rx="1.5" fill="#FFFFFF" opacity="0.75"/>
+            <rect x="26" y="85" width="7" height="7" rx="1.5" fill="#E11D2E" opacity="0.9"/>
+            <rect x="127" y="68" width="7" height="7" rx="1.5" fill="#E11D2E" opacity="0.9"/>
+            <rect x="127" y="85" width="7" height="7" rx="1.5" fill="#3B82F6" opacity="0.9"/>
+            <rect x="68" y="127" width="7" height="7" rx="1.5" fill="#FFFFFF" opacity="0.75"/>
+            <rect x="85" y="127" width="7" height="7" rx="1.5" fill="#3B82F6" opacity="0.9"/>
+            <rect x="105" y="105" width="13" height="13" rx="3" fill="#2563EB"/>
+            <rect x="123" y="123" width="13" height="13" rx="3" fill="#FFFFFF"/>
+          </svg>
         </div>
 
         <!-- Typography -->
-        <div class="space-y-2">
-            <div class="flex items-center justify-center gap-2">
-                <h1 class="font-black text-4xl sm:text-5xl tracking-tight text-[#111111]">LIFEQR</h1>
-                <span class="w-3 h-3 rounded-full bg-[#E11D2E]"></span>
+        <div class="hud-brand">
+          <span class="hud-brand-life">LIFE</span><span class="hud-brand-qr">QR</span>
+        </div>
+        <div class="hud-sub-label">CRITICAL EMERGENCY IDENTITY</div>
+
+        <!-- Telemetry Diagnostic Card -->
+        <div class="telemetry-card" role="status" aria-live="polite">
+          <div class="tc-header">
+            <div class="tc-left">
+              <span class="tc-dot" aria-hidden="true"></span>
+              <span class="tc-status-text" id="telemetryStatus">INITIALIZING EMERGENCY VAULT…</span>
             </div>
-            <p class="font-mono text-xs uppercase tracking-widest font-bold text-[#E11D2E]">
-                Zero-Latency Emergency Triage Network
-            </p>
+            <span class="tc-percentage" id="telemetryPct">0%</span>
+          </div>
+          <div class="tc-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progressTrack">
+            <div class="tc-fill" id="progressFill"></div>
+          </div>
+          <div class="tc-grid">
+            <div class="tc-cell">
+              <span class="tc-cell-k">SECURITY PROTOCOL</span>
+              <span class="tc-cell-v">AES-256 ENCRYPTED</span>
+            </div>
+            <div class="tc-cell">
+              <span class="tc-cell-k">DISPATCH MESH</span>
+              <span class="tc-cell-v">3.0 KM ACTIVE GPS</span>
+            </div>
+          </div>
         </div>
 
-        <!-- Indeterminate Progress Indicator -->
-        <div class="w-56 sm:w-64 h-2 border-2 border-[#111111] bg-white mt-10 overflow-hidden p-0.5">
-            <div class="h-full w-full shimmer-bar"></div>
-        </div>
+      </div>
+    </section>
 
-        <!-- Status Message -->
-        <div class="mt-4 flex items-center gap-2 font-mono text-xs font-bold text-[#111111]/80">
-            <span class="material-symbols-outlined text-sm animate-spin text-[#E11D2E]">sync</span>
-            <span id="loadingStatusText">Connecting to emergency vault...</span>
-        </div>
+  </main>
 
+  <!-- Bottom Telemetry Bar -->
+  <footer class="bottom-telemetry-bar" aria-hidden="true">
+    <div class="bt-meta">
+      <span class="bt-meta-k">ARCHITECTURE</span>
+      <span class="bt-meta-v">ZERO-LOGIN EMERGENCY GATEWAY</span>
     </div>
-
-    <!-- Bottom Security & Protocol Tag -->
-    <div class="w-full flex flex-col sm:flex-row items-center justify-between border-t-2 border-[#111111] pt-4 font-mono text-[11px] text-[#111111]/60">
-        <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-sm text-[#111111]">verified_user</span>
-            <span class="uppercase tracking-wider font-bold text-[#111111]">END-TO-END ENCRYPTED</span>
-        </div>
-        <p class="mt-2 sm:mt-0">&copy; 2025&ndash;2026 LifeQR &bull; ALL SYSTEMS OPERATIONAL</p>
+    <div class="bt-badge">
+      <span class="bt-badge-cross">+</span>
+      <span class="bt-badge-txt">LIFEQR V2</span>
     </div>
+  </footer>
 
-    <!-- Auto-Redirect Logic -->
-    <script>
-        (function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const noRedirect = urlParams.get('no_redirect') === 'true' || urlParams.get('preview') === 'true';
-            const targetOverride = urlParams.get('target');
-            const statusEl = document.getElementById('loadingStatusText');
+  <!-- Tap hint (Production mode) -->
+  <div class="tap-skip-hint" id="tapSkipHint">TAP ANYWHERE TO LAUNCH</div>
 
-            if (noRedirect) {
-                if (statusEl) statusEl.textContent = 'Preview Mode Active';
-                return;
+  <!-- ═══════════════════════════════════════════════════════════
+       PREVIEW & MOTION AS CODE SCRUBBER (Enabled with ?preview=true)
+  ═════════════════════════════════════════════════════════════ -->
+  <div class="preview-hud" id="previewHud" style="display:none;" aria-label="Motion As Code Transport Bar">
+    <div class="preview-top-row">
+      <div class="pt-info">
+        <span class="pt-badge">MOTION AS CODE</span>
+        <span class="pt-time" id="previewTimeDisplay">t: 0.00s / 3.20s</span>
+      </div>
+      <div class="preview-controls">
+        <button class="p-btn" id="btnPlayPause" title="Space to toggle">PAUSE</button>
+        <button class="p-btn" id="btnRestart" title="R to restart">RESTART</button>
+        <button class="p-btn" id="btnLoop" title="L to toggle loop">LOOP: ON</button>
+        <button class="p-btn" id="btnLaunchApp">LAUNCH APP</button>
+      </div>
+    </div>
+    <input type="range" class="preview-scrubber" id="timeScrubber" min="0" max="3.2" step="0.016" value="0">
+    <div class="preview-plates-row">
+      <button class="plate-tab active" data-plate="0">01: RETICLE</button>
+      <button class="plate-tab" data-plate="1">02: WORDMARK</button>
+      <button class="plate-tab" data-plate="2">03: VAULT HUD</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MOTION AS CODE ENGINE JAVASCRIPT
+  ═════════════════════════════════════════════════════════════ -->
+  <script>
+  (function(){
+    'use strict';
+
+    /* ─── URL Parameters & Modes ─────────────────────────────── */
+    var params = new URLSearchParams(window.location.search);
+    var isPreview = params.get('preview') === 'true' || params.get('dev') === 'true';
+    var noRedirect = isPreview || params.get('no_redirect') === 'true';
+    var targetUrl = params.get('target') || 'patient_app.html';
+
+    var previewHud = document.getElementById('previewHud');
+    var tapSkipHint = document.getElementById('tapSkipHint');
+    if (isPreview && previewHud) {
+      previewHud.style.display = 'flex';
+      if (tapSkipHint) tapSkipHint.style.display = 'none';
+    }
+
+    /* ─── High-DPI Procedural Canvas Engine ─────────────────── */
+    var canvas = document.getElementById('motionCanvas');
+    var ctx = canvas.getContext('2d');
+    var W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    function handleResize(){
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener('resize', handleResize);
+    handleResize();
+
+    /* ─── Kinetic Sparks ─────────────────────────────────────── */
+    var sparks = [];
+    var NUM_SPARKS = 24;
+    function createSpark(initRandom){
+      return {
+        x: Math.random() * W,
+        y: initRandom ? Math.random() * H : H + 10,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: -Math.random() * 1.2 - 0.3,
+        life: initRandom ? Math.random() * 120 : 0,
+        maxLife: 90 + Math.random() * 90,
+        length: 8 + Math.random() * 20,
+        colorType: Math.random() > 0.4 ? 'blue' : 'red'
+      };
+    }
+    for (var i = 0; i < NUM_SPARKS; i++) {
+      sparks.push(createSpark(true));
+    }
+
+    /* ─── Web Audio API Sound Generation (Zero external audio) ─ */
+    var audioCtx = null;
+    function playBeep(freq, type, duration, gainVal){
+      try {
+        if (!audioCtx) {
+          var AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) audioCtx = new AudioContext();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        if (!audioCtx) return;
+
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.type = type || 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(gainVal || 0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch(e) {}
+    }
+
+    /* ─── Clock Display ──────────────────────────────────────── */
+    function updateClock(){
+      var el = document.getElementById('telemetryClock');
+      if (!el) return;
+      var d = new Date();
+      var h = d.getHours();
+      var m = String(d.getMinutes()).padStart(2, '0');
+      var s = String(d.getSeconds()).padStart(2, '0');
+      var ampm = h >= 12 ? 'PM' : 'AM';
+      var h12 = h % 12 || 12;
+      el.textContent = h12 + ':' + m + ':' + s + ' ' + ampm;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    /* ═══════════════════════════════════════════════════════════
+       DETERMINISTIC TIMELINE & PLATES CONTROLLER
+       Plate 01: Reticle Acquisition   [0.00s – 0.90s]
+       Plate 02: Kinetic Wordmark      [0.90s – 1.90s]
+       Plate 03: Vault Telemetry       [1.90s – 3.20s]
+    ═════════════════════════════════════════════════════════════ */
+    var TOTAL_DURATION = 3.20;
+    var currentTime = 0;
+    var isPlaying = true;
+    var isLooping = isPreview;
+    var lastTimestamp = performance.now();
+
+    var plate1 = document.getElementById('plate-reticle');
+    var plate2 = document.getElementById('plate-wordmark');
+    var plate3 = document.getElementById('plate-vault');
+    var wmLetters = document.querySelectorAll('.wm-letter');
+    var reticleStatus = document.getElementById('reticleStatus');
+    var telemetryStatus = document.getElementById('telemetryStatus');
+    var telemetryPct = document.getElementById('telemetryPct');
+    var progressFill = document.getElementById('progressFill');
+    var timeScrubber = document.getElementById('timeScrubber');
+    var previewTimeDisplay = document.getElementById('previewTimeDisplay');
+    var btnPlayPause = document.getElementById('btnPlayPause');
+    var plateTabs = document.querySelectorAll('.plate-tab');
+
+    var hudStages = [
+      { p: 0.18, pct: 15, msg: 'INITIALIZING AES-256 VAULT…' },
+      { p: 0.45, pct: 44, msg: 'CONNECTING 2–3 KM DISPATCH MESH…' },
+      { p: 0.72, pct: 78, msg: 'SYNCHRONIZING OPTICAL QR MATRIX…' },
+      { p: 0.92, pct: 95, msg: 'CALIBRATING EMERGENCY TELEMETRY…' },
+      { p: 1.00, pct: 100, msg: 'EMERGENCY NETWORK OPERATIONAL' }
+    ];
+
+    /* Render loop for Canvas (Graph paper, radar line, sparks, bloom) */
+    function renderCanvas(t){
+      ctx.clearRect(0, 0, W, H);
+
+      /* 1. Swiss Technical Graph Paper Grid */
+      var CELL = 36;
+      ctx.strokeStyle = 'rgba(37, 99, 235, 0.035)';
+      ctx.lineWidth = 0.5;
+      for (var gx = 0; gx <= W; gx += CELL) {
+        ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
+      }
+      for (var gy = 0; gy <= H; gy += CELL) {
+        ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+      }
+
+      /* Bold 4-cell Major Coordinates */
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.055)';
+      ctx.lineWidth = 0.8;
+      for (var bx = 0; bx <= W; bx += CELL * 4) {
+        ctx.beginPath(); ctx.moveTo(bx, 0); ctx.lineTo(bx, H); ctx.stroke();
+      }
+      for (var by = 0; by <= H; by += CELL * 4) {
+        ctx.beginPath(); ctx.moveTo(0, by); ctx.lineTo(W, by); ctx.stroke();
+      }
+
+      /* Subtle Crosshair intersections at major nodes */
+      ctx.strokeStyle = 'rgba(37, 99, 235, 0.18)';
+      ctx.lineWidth = 1;
+      for (var mx = CELL * 4; mx < W; mx += CELL * 4) {
+        for (var my = CELL * 4; my < H; my += CELL * 4) {
+          ctx.beginPath();
+          ctx.moveTo(mx - 4, my); ctx.lineTo(mx + 4, my);
+          ctx.moveTo(mx, my - 4); ctx.lineTo(mx, my + 4);
+          ctx.stroke();
+        }
+      }
+
+      /* 2. Radar Sweep Beam */
+      var radarAngle = (t * 1.5) % (Math.PI * 2);
+      var cx = W / 2, cy = H / 2;
+      var radarRadius = Math.min(W, H) * 0.42;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(radarAngle);
+      var radarGrad = ctx.createLinearGradient(0, 0, radarRadius, 0);
+      radarGrad.addColorStop(0, 'rgba(37, 99, 235, 0.25)');
+      radarGrad.addColorStop(0.7, 'rgba(225, 29, 46, 0.08)');
+      radarGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = radarGrad;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, radarRadius, 0, Math.PI / 5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      /* 3. Upward Drifting Kinetic Sparks */
+      for (var sIdx = 0; sIdx < sparks.length; sIdx++) {
+        var sp = sparks[sIdx];
+        sp.life++;
+        var lifeProgress = sp.life / sp.maxLife;
+        var alpha = Math.sin(lifeProgress * Math.PI) * 0.6;
+        if (alpha <= 0) {
+          Object.assign(sp, createSpark(false));
+          continue;
+        }
+
+        var col = sp.colorType === 'blue' ? '37, 99, 235' : '225, 29, 46';
+        var sparkGrad = ctx.createLinearGradient(sp.x, sp.y, sp.x, sp.y - sp.length);
+        sparkGrad.addColorStop(0, 'rgba(' + col + ',' + alpha + ')');
+        sparkGrad.addColorStop(1, 'rgba(' + col + ',0)');
+
+        ctx.strokeStyle = sparkGrad;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(sp.x, sp.y);
+        ctx.lineTo(sp.x + sp.vx * 3, sp.y - sp.length);
+        ctx.stroke();
+
+        sp.x += sp.vx;
+        sp.y += sp.vy;
+        if (sp.life >= sp.maxLife || sp.y < -30) {
+          Object.assign(sp, createSpark(false));
+        }
+      }
+
+      /* 4. Center Breathing Ambient Halation */
+      var bloomPulse = 0.5 + 0.5 * Math.sin(t * 2.2);
+      var radGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, H) * 0.45);
+      radGrad.addColorStop(0, 'rgba(37, 99, 235,' + (0.04 + bloomPulse * 0.03) + ')');
+      radGrad.addColorStop(0.6, 'rgba(225, 29, 46,' + (0.02 + bloomPulse * 0.02) + ')');
+      radGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = radGrad;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    /* ─── State Evaluation as pure function of time ─────────── */
+    function evaluateTime(t){
+      /* Plate 1: 0.00s <= t < 0.90s */
+      if (t < 0.90) {
+        plate1.classList.add('active'); plate1.classList.remove('exit');
+        plate2.classList.remove('active', 'exit');
+        plate3.classList.remove('active', 'exit');
+
+        var p1Progress = t / 0.90;
+        var rMessages = [
+          'ACQUIRING EMERGENCY SIGNAL…',
+          'CALIBRATING 2–3 KM MESH…',
+          'TRIANGULATING GPS BEACON…'
+        ];
+        var rIdx = Math.min(rMessages.length - 1, Math.floor(p1Progress * rMessages.length));
+        if (reticleStatus) reticleStatus.textContent = rMessages[rIdx];
+
+        wmLetters.forEach(function(letter){ letter.classList.remove('on'); });
+      }
+      /* Plate 2: 0.90s <= t < 1.90s */
+      else if (t < 1.90) {
+        plate1.classList.remove('active'); plate1.classList.add('exit');
+        plate2.classList.add('active'); plate2.classList.remove('exit');
+        plate3.classList.remove('active', 'exit');
+
+        var p2Progress = (t - 0.90) / 1.00;
+        /* Character kinetic reveal sequence */
+        wmLetters.forEach(function(letter, idx){
+          var charTrigger = idx * 0.12;
+          if (p2Progress >= charTrigger) {
+            letter.classList.add('on');
+          } else {
+            letter.classList.remove('on');
+          }
+        });
+      }
+      /* Plate 3: 1.90s <= t <= 3.20s */
+      else {
+        plate1.classList.remove('active', 'exit');
+        plate2.classList.remove('active'); plate2.classList.add('exit');
+        plate3.classList.add('active'); plate3.classList.remove('exit');
+
+        var p3Progress = Math.min(1.0, (t - 1.90) / 1.15);
+        var pct = Math.round(p3Progress * 100);
+
+        if (progressFill) progressFill.style.width = pct + '%';
+        if (telemetryPct) telemetryPct.textContent = pct + '%';
+
+        var activeMsg = hudStages[hudStages.length - 1].msg;
+        for (var h = 0; h < hudStages.length; h++) {
+          if (p3Progress <= hudStages[h].p) {
+            activeMsg = hudStages[h].msg;
+            break;
+          }
+        }
+        if (telemetryStatus) telemetryStatus.textContent = activeMsg;
+      }
+
+      /* Update Scrubber & HUD */
+      if (timeScrubber && document.activeElement !== timeScrubber) {
+        timeScrubber.value = t.toFixed(2);
+      }
+      if (previewTimeDisplay) {
+        var currentPlateNum = t < 0.90 ? '01: RETICLE' : (t < 1.90 ? '02: WORDMARK' : '03: VAULT');
+        previewTimeDisplay.textContent = 't: ' + t.toFixed(2) + 's / ' + TOTAL_DURATION.toFixed(2) + 's [' + currentPlateNum + ']';
+      }
+
+      /* Update Active Tab */
+      var activePlateIdx = t < 0.90 ? 0 : (t < 1.90 ? 1 : 2);
+      plateTabs.forEach(function(tab, idx){
+        if (idx === activePlateIdx) tab.classList.add('active');
+        else tab.classList.remove('active');
+      });
+    }
+
+    /* ─── Main Tick Loop ─────────────────────────────────────── */
+    function engineLoop(timestamp){
+      var delta = (timestamp - lastTimestamp) * 0.001;
+      lastTimestamp = timestamp;
+
+      if (isPlaying) {
+        currentTime += delta;
+
+        if (currentTime >= TOTAL_DURATION) {
+          if (isLooping) {
+            currentTime = 0;
+          } else {
+            currentTime = TOTAL_DURATION;
+            isPlaying = false;
+            if (!noRedirect) {
+              launchApp();
+              return;
             }
+          }
+        }
+      }
 
-            setTimeout(() => {
-                if (statusEl) statusEl.textContent = 'Authenticating session token...';
-            }, 700);
+      evaluateTime(currentTime);
+      renderCanvas(currentTime);
 
-            setTimeout(() => {
-                if (targetOverride) {
-                    window.location.href = targetOverride;
-                    return;
-                }
+      requestAnimationFrame(engineLoop);
+    }
+    requestAnimationFrame(engineLoop);
 
-                // Check stored auth session
-                try {
-                    const token = localStorage.getItem('token');
-                    const userStr = localStorage.getItem('user');
+    /* ─── App Redirection & Launch ──────────────────────────── */
+    var hasLaunched = false;
+    function launchApp(){
+      if (hasLaunched) return;
+      hasLaunched = true;
 
-                    if (token && userStr) {
-                        const user = JSON.parse(userStr);
-                        const role = (user.role || '').toLowerCase();
+      /* Check existing session role */
+      try {
+        var tok = localStorage.getItem('token');
+        var usr = localStorage.getItem('user');
+        if (tok && usr) {
+          var u = JSON.parse(usr);
+          var role = (u.role || '').toLowerCase();
+          if (role === 'doctor')                                             { window.location.href = 'doctor_dashboard.html'; return; }
+          if (role === 'crew' || role === 'paramedic' || role === 'ambulance'){ window.location.href = 'CrewAmbulance_dashboard.html'; return; }
+          if (role === 'er' || role === 'hospital')                         { window.location.href = 'er_dashboard.html'; return; }
+          if (role === 'admin')                                             { window.location.href = 'admin_dashboard.html'; return; }
+        }
+      } catch(err) {
+        console.warn('Session route check error:', err);
+      }
 
-                        if (role === 'doctor') {
-                            window.location.href = 'doctor_dashboard.html';
-                            return;
-                        } else if (role === 'crew' || role === 'paramedic' || role === 'ambulance') {
-                            window.location.href = 'CrewAmbulance_dashboard.html';
-                            return;
-                        } else if (role === 'er' || role === 'hospital') {
-                            window.location.href = 'er_dashboard.html';
-                            return;
-                        } else if (role === 'admin') {
-                            window.location.href = 'admin_dashboard.html';
-                            return;
-                        } else {
-                            window.location.href = 'patient_dashboard.html';
-                            return;
-                        }
-                    }
-                } catch (e) {
-                    console.warn('Session check fallback:', e);
-                }
+      window.location.href = targetUrl;
+    }
 
-                // Default destination for unauthenticated visitors
-                window.location.href = 'lifeqr_login.html';
-            }, 1600);
-        })();
-    </script>
+    /* ─── User Interaction (Tap/Click to skip) ──────────────── */
+    document.addEventListener('click', function(e){
+      /* If clicking inside preview HUD, don't launch */
+      if (e.target.closest('#previewHud')) return;
+      if (!isPreview) {
+        playBeep(880, 'sine', 0.12, 0.04);
+        launchApp();
+      }
+    });
+
+    /* ─── Preview HUD Controls ──────────────────────────────── */
+    if (btnPlayPause) {
+      btnPlayPause.addEventListener('click', function(){
+        isPlaying = !isPlaying;
+        btnPlayPause.textContent = isPlaying ? 'PAUSE' : 'PLAY';
+      });
+    }
+
+    var btnRestart = document.getElementById('btnRestart');
+    if (btnRestart) {
+      btnRestart.addEventListener('click', function(){
+        currentTime = 0;
+        isPlaying = true;
+        if (btnPlayPause) btnPlayPause.textContent = 'PAUSE';
+      });
+    }
+
+    var btnLoop = document.getElementById('btnLoop');
+    if (btnLoop) {
+      btnLoop.addEventListener('click', function(){
+        isLooping = !isLooping;
+        btnLoop.textContent = isLooping ? 'LOOP: ON' : 'LOOP: OFF';
+      });
+    }
+
+    var btnLaunchApp = document.getElementById('btnLaunchApp');
+    if (btnLaunchApp) {
+      btnLaunchApp.addEventListener('click', function(){
+        launchApp();
+      });
+    }
+
+    if (timeScrubber) {
+      timeScrubber.addEventListener('input', function(){
+        currentTime = parseFloat(timeScrubber.value);
+        evaluateTime(currentTime);
+      });
+    }
+
+    plateTabs.forEach(function(tab){
+      tab.addEventListener('click', function(){
+        var pIdx = parseInt(tab.dataset.plate, 10);
+        isPlaying = false;
+        if (btnPlayPause) btnPlayPause.textContent = 'PLAY';
+        if (pIdx === 0) currentTime = 0.45;
+        else if (pIdx === 1) currentTime = 1.40;
+        else if (pIdx === 2) currentTime = 2.45;
+        evaluateTime(currentTime);
+      });
+    });
+
+    /* ─── Keyboard Hotkeys (from Workflow Guide) ────────────── */
+    window.addEventListener('keydown', function(e){
+      if (e.code === 'Space') {
+        e.preventDefault();
+        isPlaying = !isPlaying;
+        if (btnPlayPause) btnPlayPause.textContent = isPlaying ? 'PAUSE' : 'PLAY';
+      } else if (e.code === 'ArrowRight') {
+        currentTime = Math.min(TOTAL_DURATION, currentTime + (e.shiftKey ? 1.0 : 0.2));
+        evaluateTime(currentTime);
+      } else if (e.code === 'ArrowLeft') {
+        currentTime = Math.max(0, currentTime - (e.shiftKey ? 1.0 : 0.2));
+        evaluateTime(currentTime);
+      } else if (e.key === 'r' || e.key === 'R') {
+        currentTime = 0;
+        isPlaying = true;
+      } else if (e.key === 'l' || e.key === 'L') {
+        isLooping = !isLooping;
+        if (btnLoop) btnLoop.textContent = isLooping ? 'LOOP: ON' : 'LOOP: OFF';
+      } else if (e.key === 'h' || e.key === 'H') {
+        if (previewHud) {
+          previewHud.style.display = previewHud.style.display === 'none' ? 'flex' : 'none';
+        }
+      }
+    });
+
+  })();
+  </script>
 </body>
 </html>

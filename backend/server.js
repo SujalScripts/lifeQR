@@ -62,22 +62,8 @@ app.use(cookieParser());
 // Live Reload Clients list for local development
 let devClients = [];
 
-// Run two-way frontend directory sync on server boot & start watcher
-try {
-  const { startWatcher } = require("../scripts/sync-frontend");
-  startWatcher((file) => {
-    // Notify all connected development clients to reload
-    devClients.forEach(client => {
-      try {
-        client.write(`data: ${file}\n\n`);
-      } catch (err) {
-        // Handle closed connection errors gracefully
-      }
-    });
-  });
-} catch (syncErr) {
-  console.warn("[Frontend Sync Warning]", syncErr.message);
-}
+
+
 
 // Serve static files with no-cache for HTML to prevent stale browser caches
 const staticOptions = {
@@ -90,9 +76,15 @@ const staticOptions = {
   }
 };
 
-app.get(['/', '/index.html', '/landingpage.html'], (req, res) => {
+app.get(['/', '/index.html', '/landingpage.html', '/website', '/website/'], (req, res) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.sendFile(path.join(__dirname, '../website/index.html'));
+});
+
+// Mobile Application root endpoint
+app.get(['/app', '/app/', '/app/index.html'], (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.sendFile(path.join(__dirname, '../app/patient_app.html'));
 });
 
 app.use('/website', express.static(path.join(__dirname, '../website'), staticOptions));
@@ -262,21 +254,18 @@ const startServer = async () => {
     // Socket.IO authentication middleware — verify JWT from cookie
     io.use((socket, next) => {
       try {
-        const cookieHeader = socket.handshake.headers.cookie;
-        if (!cookieHeader) {
-          return next(new Error('Authentication required'));
+        let token = socket.handshake.auth?.token || socket.handshake.query?.token;
+
+        if (!token && socket.handshake.headers.cookie) {
+          const cookieHeader = socket.handshake.headers.cookie;
+          const tokenMatch = cookieHeader.split(';')
+            .map(c => c.trim())
+            .find(c => c.startsWith('token='));
+          if (tokenMatch) {
+            token = tokenMatch.split('=')[1];
+          }
         }
 
-        // Parse the token cookie from the cookie header
-        const tokenMatch = cookieHeader.split(';')
-          .map(c => c.trim())
-          .find(c => c.startsWith('token='));
-
-        if (!tokenMatch) {
-          return next(new Error('Authentication required'));
-        }
-
-        const token = tokenMatch.split('=')[1];
         if (!token) {
           return next(new Error('Authentication required'));
         }
@@ -321,25 +310,45 @@ const startServer = async () => {
       const networkUrl = localIp && localIp !== 'localhost' ? `${protocol}://${localIp}:${PORT}` : null;
       const envName = process.env.NODE_ENV || 'development';
 
-      console.log('\n┌────────────────────────────────────────────────────────────┐');
-      console.log('│         🚑  LifeQR Emergency Medical Platform  🚑          │');
-      console.log('└────────────────────────────────────────────────────────────┘');
+      console.log('\n┌─────────────────────────────────────────────────────────────┐');
+      console.log('│          🚑  LifeQR Emergency Medical Platform  🚑          │');
+      console.log('└─────────────────────────────────────────────────────────────┘');
       console.log(`  🚀 Server Status : Operational in [${envName}] mode`);
       console.log(`  🚪 Server Port   : ${PORT}`);
-      console.log('\n  🌐 Website & Application Links:');
-      console.log(`  ➜ Local Website     : ${localUrl}/`);
-      if (networkUrl) {
-        console.log(`  ➜ Network Website   : ${networkUrl}/`);
+      if (localIp && localIp !== 'localhost') {
+        console.log(`  📡 Network IP    : ${localIp}`);
       }
-      console.log('\n  📱 Emergency Dashboards & Portals:');
-      console.log(`  ➜ Patient Dashboard : ${localUrl}/patient_dashboard.html`);
-      console.log(`  ➜ Patient Mobile App: ${localUrl}/patient_app.html`);
-      console.log(`  ➜ Ambulance Crew    : ${localUrl}/CrewAmbulance_dashboard.html`);
-      console.log(`  ➜ Doctor Portal     : ${localUrl}/doctor_dashboard.html`);
-      console.log(`  ➜ Admin Portal      : ${localUrl}/admin_dashboard.html`);
-      console.log(`  ➜ Emergency Scanner : ${localUrl}/emergency_access.html`);
-      console.log(`  ➜ API Health Status : ${localUrl}/api/v1/health`);
-      console.log('──────────────────────────────────────────────────────────────\n');
+
+      console.log('\n  🌐 Public Marketing Website & Auth:');
+      console.log(`  ➜ Local Website       : ${localUrl}/`);
+      if (networkUrl) {
+        console.log(`  ➜ Network Website     : ${networkUrl}/`);
+      }
+      console.log(`  ➜ Sign In Portal      : ${localUrl}/lifeqr_login.html`);
+      console.log(`  ➜ Registration Portal : ${localUrl}/lifeqr_signup.html`);
+
+      console.log('\n  📲 Patient Mobile App (PWA & Android):');
+      console.log(`  ➜ Local Mobile App    : ${localUrl}/app`);
+      console.log(`  ➜ Direct App View     : ${localUrl}/patient_app.html`);
+      if (networkUrl) {
+        console.log(`  ➜ Network Mobile App  : ${networkUrl}/app  (Open on Phone)`);
+      }
+      console.log(`  ➜ App Splash Screen   : ${localUrl}/splash.html`);
+
+      console.log('\n  🏥 Clinical, EMS & Hospital Command Portals:');
+      console.log(`  ➜ Patient Health Vault: ${localUrl}/patient_dashboard.html`);
+      console.log(`  ➜ Doctor Portal       : ${localUrl}/doctor_dashboard.html`);
+      console.log(`  ➜ Ambulance Crew HUD  : ${localUrl}/CrewAmbulance_dashboard.html`);
+      console.log(`  ➜ Hospital Command    : ${localUrl}/hospital_dashboard.html`);
+      console.log(`  ➜ ER Trauma Bay       : ${localUrl}/er_dashboard.html`);
+      console.log(`  ➜ Admin Console       : ${localUrl}/admin_dashboard.html`);
+      console.log(`  ➜ Emergency Scanner   : ${localUrl}/emergency_access.html`);
+      console.log(`  ➜ Demo Emergency Pass : ${localUrl}/emergency_access.html?id=RAH-D3200470`);
+
+      console.log('\n  ⚡ Developer & API Endpoints:');
+      console.log(`  ➜ API Health Status   : ${localUrl}/api/v1/health`);
+      console.log(`  ➜ System Config       : ${localUrl}/api/v1/config`);
+      console.log('───────────────────────────────────────────────────────────────\n');
     });
 
     server.on('error', (listenErr) => {

@@ -246,6 +246,176 @@
             opacity: 1;
             transform: translateY(0);
         }
+
+        /* ==========================================
+           INTERACTIVE APP SIMULATOR STYLES
+           ========================================== */
+        .sim-phone-frame {
+            position: relative;
+            width: 375px;
+            max-width: 100%;
+            border-radius: 46px;
+            background: #141414;
+            padding: 12px;
+            box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.45), 8px 8px 0px #111111;
+            border: 3px solid #2a2a2a;
+            margin: 0 auto;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .sim-phone-screen {
+            position: relative;
+            width: 100%;
+            height: 720px;
+            border-radius: 36px;
+            overflow: hidden;
+            background: #000000;
+        }
+        .sim-dynamic-island {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 26px;
+            background: #000000;
+            border-radius: 999px;
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+        .sim-home-bar {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 130px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.45);
+            border-radius: 999px;
+            z-index: 30;
+            pointer-events: none;
+        }
+
+        .sim-laptop-frame {
+            position: relative;
+            width: 100%;
+            max-width: 820px;
+            border-radius: 16px 16px 0 0;
+            background: #181818;
+            padding: 14px 14px 0 14px;
+            box-shadow: 0 35px 80px -20px rgba(0, 0, 0, 0.5), 8px 8px 0px #111111;
+            border: 3px solid #2a2a2a;
+            border-bottom: none;
+            margin: 0 auto;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .sim-laptop-screen {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            border-radius: 6px 6px 0 0;
+            overflow: hidden;
+            background: #ffffff;
+        }
+        .sim-laptop-camera {
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 30;
+            pointer-events: none;
+        }
+        .sim-camera-lens {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: #0a0a0a;
+            border: 1px solid #333333;
+        }
+        .sim-camera-led {
+            width: 4px;
+            height: 4px;
+            border-radius: 999px;
+            background: #10b981;
+            box-shadow: 0 0 6px #10b981;
+        }
+        .sim-laptop-base {
+            width: calc(100% + 40px);
+            margin-left: -20px;
+            height: 18px;
+            background: #252525;
+            border: 2px solid #111111;
+            border-radius: 0 0 14px 14px;
+            position: relative;
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.25), 6px 6px 0px #111111;
+            display: flex;
+            justify-content: center;
+        }
+        .sim-laptop-notch {
+            width: 90px;
+            height: 5px;
+            background: #111111;
+            border-radius: 0 0 6px 6px;
+        }
+
+        .sim-tab-btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 8px 14px;
+            border: 2px solid #111111;
+            background: #ffffff;
+            color: #111111;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .sim-tab-btn:hover {
+            background: #111111;
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+        .sim-tab-btn.active {
+            background: #111111;
+            color: #ffffff;
+            box-shadow: 3px 3px 0px #E11D2E;
+        }
+
+        .sim-tool-btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 7px 12px;
+            border: 2px solid #111111;
+            background: #ffffff;
+            color: #111111;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        .sim-tool-btn:hover {
+            background: #E11D2E;
+            color: #ffffff;
+            border-color: #E11D2E;
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body class="min-h-screen relative">
@@ -274,7 +444,11 @@
                 <span class="w-2.5 h-2.5 rounded-full bg-[#E11D2E] group-hover:scale-125 transition-transform"></span>
             </a>
 
-            <nav class="hidden md:flex items-center gap-8 text-xs uppercase font-mono tracking-wider font-bold text-[#111111]">
+            <nav class="hidden md:flex items-center gap-7 text-xs uppercase font-mono tracking-wider font-bold text-[#111111]">
+                <a href="#app-simulator" class="hover:text-[#E11D2E] text-[#E11D2E] transition flex items-center gap-1.5 font-black">
+                    <span class="w-2 h-2 rounded-full bg-[#E11D2E] animate-ping"></span>
+                    <span>Live App Lab</span>
+                </a>
                 <a href="#how-it-works" class="hover:text-[#E11D2E] transition">How It Works</a>
                 <a href="#portals" class="hover:text-[#E11D2E] transition">Ecosystem</a>
                 <a href="#who-needs-it" class="hover:text-[#E11D2E] transition">Who It's For</a>
@@ -284,7 +458,7 @@
             </nav>
 
             <div class="hidden md:flex items-center gap-4">
-                <a href="lifeqr_login.html" class="text-xs font-mono uppercase tracking-wider font-bold text-[#111111] hover:text-[#E11D2E] transition">Sign In</a>
+                <a href="lifeqr_login.html" id="landingHeaderSignInBtn" class="text-xs font-mono uppercase tracking-wider font-bold text-[#111111] hover:text-[#E11D2E] transition">Sign In</a>
                 <a href="lifeqr_signup.html" class="btn-primary text-xs px-5 py-2.5 uppercase font-mono tracking-wider">
                     <span>Create Free Badge</span>
                     <span class="material-symbols-outlined text-xs">arrow_forward</span>
@@ -311,6 +485,10 @@
                     </button>
                 </div>
                 <nav class="flex flex-col gap-5 mt-8 font-mono text-xs uppercase tracking-wider font-bold text-[#111111]">
+                    <a href="#app-simulator" class="close-link text-[#E11D2E] font-black py-1 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-[#E11D2E]"></span>
+                        <span>Live App Lab (Interactive)</span>
+                    </a>
                     <a href="#how-it-works" class="close-link hover:text-[#E11D2E] py-1">How It Works</a>
                     <a href="#portals" class="close-link hover:text-[#E11D2E] py-1">Ecosystem</a>
                     <a href="#who-needs-it" class="close-link hover:text-[#E11D2E] py-1">Who It's For</a>
@@ -320,7 +498,7 @@
                 </nav>
             </div>
             <div class="pt-6 border-t-2 border-[#111111] space-y-3 font-mono">
-                <a href="lifeqr_login.html" class="block text-center text-xs uppercase tracking-wider font-bold border-2 border-[#111111] py-3 text-[#111111]">Sign In</a>
+                <a href="lifeqr_login.html" id="landingMobileDrawerSignInBtn" class="block text-center text-xs uppercase tracking-wider font-bold border-2 border-[#111111] py-3 text-[#111111]">Sign In</a>
                 <a href="lifeqr_signup.html" class="btn-primary w-full justify-center text-xs uppercase tracking-wider py-3">Create Free Badge</a>
             </div>
         </div>
@@ -354,6 +532,10 @@
                     <span>Create Free Badge</span>
                     <span class="material-symbols-outlined text-sm">arrow_forward</span>
                 </a>
+                <a href="#app-simulator" class="btn-secondary text-xs uppercase font-mono tracking-wider px-5 py-3.5 w-full sm:w-auto flex items-center justify-center gap-1.5 border-[#E11D2E] text-[#E11D2E] hover:bg-[#E11D2E] hover:text-white">
+                    <span class="material-symbols-outlined text-sm">devices</span>
+                    <span>Test Live App</span>
+                </a>
                 <a href="emergency_access.html" class="btn-secondary text-xs uppercase font-mono tracking-wider px-5 py-3.5 w-full sm:w-auto">
                     <span>Scan Badge</span>
                 </a>
@@ -381,10 +563,216 @@
         </div>
 
         <!-- ==========================================
+             02 — INTERACTIVE APP SIMULATOR & DEVICE LAB
+             ========================================== -->
+        <section id="app-simulator" class="mt-20 pt-10 rule">
+            <div class="flex items-center justify-between gap-4 flex-wrap mb-3">
+                <div class="num-tag">02 — INTERACTIVE DEVICE LAB &bull; MOBILE &amp; DESKTOP SIMULATOR</div>
+                <div class="flex items-center gap-2 font-mono text-[11px] font-bold text-[#E11D2E]">
+                    <span class="live-dot"></span>
+                    <span>LIVE INTERACTIVE INSTANCE READY</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+                <div class="max-w-2xl space-y-2">
+                    <h2 class="font-black text-3xl sm:text-5xl tracking-tight text-[#111111]">
+                        EXPERIENCE THE APP BEFORE YOU LAUNCH.
+                    </h2>
+                    <p class="text-sm sm:text-base text-[#111111]/70 leading-relaxed font-medium">
+                        Test the real-time mobile patient application, emergency zero-login QR scan pass, and paramedic dispatch HUD right now in your browser. Switch between Mobile Phone and Laptop viewports to explore all critical emergency workflows prior to mobile deployment.
+                    </p>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-xs font-mono font-bold uppercase text-[#111111]/60 mr-1">Device Frame:</span>
+                    <button id="simDevicePhoneBtn" onclick="setSimulatorDevice('phone')" class="sim-tab-btn active" title="Switch to Mobile Smartphone Frame">
+                        <span class="material-symbols-outlined text-sm">phone_iphone</span>
+                        <span>Mobile Phone</span>
+                    </button>
+                    <button id="simDeviceLaptopBtn" onclick="setSimulatorDevice('laptop')" class="sim-tab-btn" title="Switch to Laptop Display Frame">
+                        <span class="material-symbols-outlined text-sm">laptop_mac</span>
+                        <span>Laptop Display</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Master Simulator Control Bar -->
+            <div class="p-4 border-2 border-[#111111] bg-white shadow-[4px_4px_0px_#111111] mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                
+                <!-- Screen Selector Tabs -->
+                <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
+                    <span class="text-[11px] font-mono font-bold uppercase text-[#111111]/50 hidden sm:inline mr-1">Select View:</span>
+                    <button id="simTabPatientApp" onclick="setSimulatorScreen('patient_app')" class="sim-tab-btn active">
+                        <span class="material-symbols-outlined text-sm">smartphone</span>
+                        <span>Patient App (MVP)</span>
+                    </button>
+                    <button id="simTabEmergency" onclick="setSimulatorScreen('emergency')" class="sim-tab-btn">
+                        <span class="material-symbols-outlined text-sm text-[#E11D2E]">qr_code_scanner</span>
+                        <span>Emergency Pass (1.8s)</span>
+                    </button>
+                    <button id="simTabCrew" onclick="setSimulatorScreen('crew')" class="sim-tab-btn">
+                        <span class="material-symbols-outlined text-sm text-[#E11D2E]">ambulance</span>
+                        <span>Paramedic HUD</span>
+                    </button>
+                    <button id="simTabDoctor" onclick="setSimulatorScreen('doctor')" class="sim-tab-btn">
+                        <span class="material-symbols-outlined text-sm">clinical_notes</span>
+                        <span>Doctor Clinical Suite</span>
+                    </button>
+                </div>
+
+                <!-- Fast Actions & Tools -->
+                <div class="flex items-center gap-2 flex-wrap pt-2 lg:pt-0 border-t-2 lg:border-t-0 border-[#111111]/10">
+                    <button onclick="simReloadFrame()" class="sim-tool-btn" title="Restart App / Splash Screen">
+                        <span class="material-symbols-outlined text-sm">refresh</span>
+                        <span>Restart</span>
+                    </button>
+                    <button onclick="simToggleTheme()" class="sim-tool-btn" title="Toggle Light / Dark Mode">
+                        <span class="material-symbols-outlined text-sm">contrast</span>
+                        <span id="simThemeLabel">Dark/Light</span>
+                    </button>
+                    <a id="simExternalLink" href="patient_app.html" target="_blank" class="sim-tool-btn bg-[#111111] text-white hover:bg-[#E11D2E]" title="Open Currently Selected Screen in New Full Window">
+                        <span class="material-symbols-outlined text-sm">open_in_new</span>
+                        <span>Open Window</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Simulator Main Stage (Device Frame + Interactive Guide) -->
+            <div class="grid lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- Left/Center: Hardware Frame Viewport -->
+                <div class="lg:col-span-7 xl:col-span-8 flex flex-col items-center justify-center p-4 sm:p-8 bg-[#f5f5f7] border-2 border-[#111111] shadow-[6px_6px_0px_#111111] min-h-[580px] overflow-hidden">
+                    
+                    <!-- Mobile Phone Frame Container -->
+                    <div id="simPhoneWrapper" class="sim-phone-frame">
+                        <div class="sim-dynamic-island">
+                            <span class="w-1.5 h-1.5 rounded-full bg-[#E11D2E] animate-ping"></span>
+                            <span class="font-bold tracking-widest text-[9px]">LIFEQR HUD</span>
+                            <span class="text-[9px]">9:41</span>
+                        </div>
+                        <div class="sim-phone-screen">
+                            <iframe id="simPhoneIframe" src="patient_app.html" class="w-full h-full border-0 select-none" allow="geolocation; camera; microphone"></iframe>
+                        </div>
+                        <div class="sim-home-bar"></div>
+                    </div>
+
+                    <!-- Laptop Display Frame Container (Hidden by default, toggled via Device Frame buttons) -->
+                    <div id="simLaptopWrapper" class="sim-laptop-frame hidden">
+                        <div class="sim-laptop-camera">
+                            <span class="sim-camera-led"></span>
+                            <span class="sim-camera-lens"></span>
+                        </div>
+                        <div class="sim-laptop-screen">
+                            <iframe id="simLaptopIframe" src="patient_app.html" class="w-full h-full border-0" allow="geolocation; camera; microphone"></iframe>
+                        </div>
+                        <div class="sim-laptop-base">
+                            <div class="sim-laptop-notch"></div>
+                        </div>
+                    </div>
+
+                    <!-- Simulator Bottom Telemetry Footnote -->
+                    <div class="mt-4 flex items-center justify-between w-full max-w-[420px] text-[11px] font-mono text-[#111111]/60 px-2">
+                        <span class="flex items-center gap-1.5">
+                            <span class="live-dot"></span>
+                            <span>AES-256 ZERO-KNOWLEDGE RUNTIME</span>
+                        </span>
+                        <span id="simFrameStatus">PORTAL: PATIENT MOBILE APP</span>
+                    </div>
+                </div>
+
+                <!-- Right: Companion Guide & Overview Card -->
+                <div class="lg:col-span-5 xl:col-span-4 space-y-6">
+                    
+                    <!-- View Description Card -->
+                    <div class="editorial-card p-6 space-y-4">
+                        <div class="flex items-center justify-between pb-3 border-b-2 border-[#111111]">
+                            <span id="simGuideTag" class="num-tag text-[#E11D2E]">01 / PATIENT MOBILE APPLICATION</span>
+                            <span class="font-mono text-[10px] px-2 py-0.5 border-2 border-emerald-600 bg-emerald-50 text-emerald-700 font-bold">● INTERACTIVE</span>
+                        </div>
+                        <h3 id="simGuideTitle" class="font-black text-xl text-[#111111]">Patient Identity Vault &amp; Live SOS</h3>
+                        <p id="simGuideDesc" class="text-xs sm:text-sm text-[#111111]/70 leading-relaxed font-medium">
+                            The complete mobile patient onboarding and emergency badge management flow. Patients register critical vitals, allergies, active prescriptions, and emergency ICE contacts under client-side encryption.
+                        </p>
+
+                        <!-- Step Testing Walkthrough -->
+                        <div class="space-y-2.5 pt-2">
+                            <div class="font-mono text-[11px] font-bold uppercase text-[#111111]">Interactive Test Steps:</div>
+                            <div id="simGuideSteps" class="space-y-2 text-xs font-mono">
+                                <div class="p-2.5 border-2 border-[#111111] bg-white flex items-start gap-2.5">
+                                    <span class="font-black text-[#E11D2E]">1</span>
+                                    <span><strong>Laser Splash Screen:</strong> Experience the radar wave pulse and biometric badge reveal on launch.</span>
+                                </div>
+                                <div class="p-2.5 border-2 border-[#111111] bg-white flex items-start gap-2.5">
+                                    <span class="font-black text-[#E11D2E]">2</span>
+                                    <span><strong>Patient Authentication:</strong> Sign in with verified credentials to access real-time medical vault.</span>
+                                </div>
+                                <div class="p-2.5 border-2 border-[#111111] bg-white flex items-start gap-2.5">
+                                    <span class="font-black text-[#E11D2E]">3</span>
+                                    <span><strong>Medical Identity:</strong> Test interactive Blood Group chips (O+), severe allergies (Penicillin), and ICE contacts.</span>
+                                </div>
+                                <div class="p-2.5 border-2 border-[#111111] bg-white flex items-start gap-2.5">
+                                    <span class="font-black text-[#E11D2E]">4</span>
+                                    <span><strong>Scannable Badge &amp; Panic SOS:</strong> Inspect your encrypted badge, download pass, and test the 1-touch distress beacon.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Verified Master Account Box -->
+                    <div class="p-5 border-2 border-[#111111] bg-[#111111] text-white shadow-[4px_4px_0px_#E11D2E] space-y-3 font-mono text-xs">
+                        <div class="flex items-center justify-between pb-2 border-b border-white/20">
+                            <span class="font-bold uppercase tracking-wider text-[#E11D2E] flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-sm">verified_user</span> Master Account Credentials
+                            </span>
+                            <span class="text-[10px] text-white/60">AUTHENTIC</span>
+                        </div>
+                        <div class="space-y-1 text-[11px]">
+                            <div class="flex justify-between"><span class="text-white/60">Email:</span> <span class="text-white font-bold select-all">patient@lifeqr.com</span></div>
+                            <div class="flex justify-between"><span class="text-white/60">Password:</span> <span class="text-white font-bold select-all">Password@123</span></div>
+                            <div class="flex justify-between"><span class="text-white/60">Patient Name:</span> <span class="text-white font-bold">Rahul Sharma</span></div>
+                            <div class="flex justify-between"><span class="text-white/60">Blood Type:</span> <span class="text-[#E11D2E] font-bold">O+ (Severe Penicillin Allergy)</span></div>
+                            <div class="flex justify-between"><span class="text-white/60">Badge ID:</span> <span class="text-emerald-400 font-bold">RAH-D3200470</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Direct Launch Links Card -->
+                    <div class="editorial-card p-5 space-y-3 font-mono text-xs">
+                        <div class="font-bold uppercase text-[#111111]">Direct Launch Links:</div>
+                        <div class="space-y-2">
+                            <a href="patient_app.html" target="_blank" class="p-2.5 border-2 border-[#111111] flex items-center justify-between hover:bg-[#111111] hover:text-white transition group">
+                                <span class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-sm">smartphone</span>
+                                    <span>Mobile Patient MVP App</span>
+                                </span>
+                                <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                            </a>
+                            <a href="emergency_access.html" target="_blank" class="p-2.5 border-2 border-[#E11D2E] flex items-center justify-between text-[#E11D2E] hover:bg-[#E11D2E] hover:text-white transition group">
+                                <span class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-sm">qr_code_scanner</span>
+                                    <span>Zero-Login Emergency Scanner</span>
+                                </span>
+                                <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                            </a>
+                            <a href="CrewAmbulance_dashboard.html" target="_blank" class="p-2.5 border-2 border-[#111111] flex items-center justify-between hover:bg-[#111111] hover:text-white transition group">
+                                <span class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-sm">ambulance</span>
+                                    <span>Paramedic 24/7 Radar HUD</span>
+                                </span>
+                                <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==========================================
              WHY LIFEQR MATTERS (THE PROBLEM WE SOLVE)
              ========================================== -->
         <section class="mt-20 pt-10 rule">
-            <div class="num-tag mb-3">02 — THE GOLDEN HOUR CRISIS</div>
+            <div class="num-tag mb-3">03 — THE GOLDEN HOUR CRISIS</div>
             <h2 class="font-black text-3xl sm:text-5xl tracking-tight mb-6 text-[#111111]">
                 WHY EMERGENCY IDENTIFICATION MATTERS.
             </h2>
@@ -418,7 +806,7 @@
              ========================================== -->
         <section id="how-it-works" class="mt-20 pt-10 rule flex flex-col lg:flex-row lg:items-center justify-between gap-10">
             <div class="space-y-4 max-w-lg">
-                <div class="num-tag">03 — FIELD-READY RESUSCITATION SIGNAL</div>
+                <div class="num-tag">04 — FIELD-READY RESUSCITATION SIGNAL</div>
                 <h3 class="font-black text-2xl sm:text-4xl text-[#111111] tracking-tight">Instant Clinical Clarity on Scene.</h3>
                 <p class="text-sm sm:text-base text-[#111111]/70 leading-relaxed font-medium">
                     When paramedics arrive at an emergency, they scan your LifeQR badge using any standard smartphone camera. In under 1.8 seconds, they receive essential resuscitation facts — blood group, life-threatening drug allergies, existing conditions, and emergency family phone numbers — while your deep medical records remain safely encrypted.
@@ -473,7 +861,7 @@
              WHO NEEDS LIFEQR (AUDIENCE USE CASES)
              ========================================== -->
         <section id="who-needs-it" class="mt-20 pt-10 rule">
-            <div class="num-tag mb-3">04 — WHO WE PROTECT</div>
+            <div class="num-tag mb-3">05 — WHO WE PROTECT</div>
             <h2 class="font-black text-3xl sm:text-5xl tracking-tight mb-8 text-[#111111]">
                 BUILT FOR EVERY STAGE OF LIFE.
             </h2>
@@ -539,7 +927,7 @@
              THE 4 ECOSYSTEM PORTALS
              ========================================== -->
         <section id="portals" class="mt-20 pt-10 rule">
-            <div class="num-tag mb-3">05 — CONNECTED EMERGENCY ECOSYSTEM</div>
+            <div class="num-tag mb-3">06 — CONNECTED EMERGENCY ECOSYSTEM</div>
             <h2 class="font-black text-3xl sm:text-5xl tracking-tight mb-8 text-[#111111]">
                 FOUR PURPOSE-BUILT SUITES. ONE LIFESAVING NETWORK.
             </h2>
@@ -617,7 +1005,7 @@
              CRITICAL CAPABILITIES
              ========================================== -->
         <section id="capabilities" class="mt-20 pt-10 rule">
-            <div class="num-tag mb-3">06 — PLATFORM CAPABILITIES</div>
+            <div class="num-tag mb-3">07 — PLATFORM CAPABILITIES</div>
             <h2 class="font-black text-3xl sm:text-5xl tracking-tight mb-8 text-[#111111]">
                 DESIGNED FOR MAXIMUM SURVIVABILITY.
             </h2>
@@ -657,7 +1045,7 @@
              HOW IT WORKS IN 3 STEPS
              ========================================== -->
         <section class="mt-20 pt-10 rule">
-            <div class="num-tag mb-3">07 — SIMPLE 3-STEP WORKFLOW</div>
+            <div class="num-tag mb-3">08 — SIMPLE 3-STEP WORKFLOW</div>
             <h2 class="font-black text-3xl sm:text-5xl tracking-tight mb-8 text-[#111111]">
                 HOW TO GET PROTECTED IN 2 MINUTES.
             </h2>
@@ -693,7 +1081,7 @@
              SECURITY & PRIVACY ARCHITECTURE
              ========================================== -->
         <section id="security" class="mt-20 pt-10 rule">
-            <div class="num-tag mb-3">08 — PRIVACY &amp; CRYPTOGRAPHY</div>
+            <div class="num-tag mb-3">09 — PRIVACY &amp; CRYPTOGRAPHY</div>
             <h2 class="font-black text-3xl sm:text-5xl tracking-tight mb-8 text-[#111111]">
                 ZERO-KNOWLEDGE PRIVACY ISOLATION.
             </h2>
@@ -724,7 +1112,7 @@
              FREQUENTLY ASKED QUESTIONS
              ========================================== -->
         <section id="faq" class="mt-20 pt-10 rule">
-            <div class="num-tag mb-3">09 — FREQUENTLY ASKED QUESTIONS</div>
+            <div class="num-tag mb-3">10 — FREQUENTLY ASKED QUESTIONS</div>
             <h2 class="font-black text-3xl sm:text-5xl tracking-tight mb-8 text-[#111111]">
                 EVERYTHING YOU NEED TO KNOW.
             </h2>
@@ -787,7 +1175,7 @@
              ========================================== -->
         <section class="mt-20 pt-10 rule">
             <div class="editorial-card p-8 sm:p-14 space-y-6">
-                <div class="num-tag">10 — BE PREPARED BEFORE AN EMERGENCY HAPPENS</div>
+                <div class="num-tag">11 — BE PREPARED BEFORE AN EMERGENCY HAPPENS</div>
                 <h2 class="font-black text-3xl sm:text-5xl tracking-tight text-[#111111]">
                     PROTECT YOURSELF &amp; YOUR FAMILY TODAY.
                 </h2>
@@ -900,6 +1288,218 @@
         } else {
             document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
         }
+
+        // ==========================================
+        // INTERACTIVE APP SIMULATOR CONTROLLER
+        // ==========================================
+        const SimState = {
+            device: 'phone',
+            screen: 'patient_app',
+            urls: {
+                patient_app: 'patient_app.html',
+                emergency: 'emergency_access.html',
+                crew: 'CrewAmbulance_dashboard.html',
+                doctor: 'doctor_dashboard.html'
+            },
+            metadata: {
+                patient_app: {
+                    tag: '01 / PATIENT MOBILE APPLICATION',
+                    title: 'Patient Identity Vault & Live SOS',
+                    desc: 'The complete mobile patient onboarding and emergency badge management flow. Patients register critical vitals, allergies, active prescriptions, and emergency ICE contacts under client-side encryption.',
+                    status: 'PORTAL: PATIENT MOBILE APP',
+                    steps: [
+                        { num: '1', title: 'Laser Splash Screen:', text: 'Experience the radar wave pulse and biometric badge reveal on launch.' },
+                        { num: '2', title: 'Patient Authentication:', text: 'Sign in with verified credentials to access real-time medical vault.' },
+                        { num: '3', title: 'Medical Identity:', text: 'Test interactive Blood Group chips (O+), severe allergies (Penicillin), and ICE contacts.' },
+                        { num: '4', title: 'Scannable Badge & Panic SOS:', text: 'Inspect your encrypted badge, download pass, and test the 1-touch distress beacon.' }
+                    ]
+                },
+                emergency: {
+                    tag: '02 / ZERO-LOGIN EMERGENCY SCAN PASS',
+                    title: 'Paramedic & Bystander Triage View',
+                    desc: 'What first responders see in under 1.8 seconds upon optical scan of any physical or digital LifeQR badge. Zero app downloads, zero logins, zero barriers.',
+                    status: 'PORTAL: EMERGENCY SCAN VIEW (1.8s)',
+                    steps: [
+                        { num: '1', title: 'Zero-Login Decrypt:', text: 'Notice resuscitation vitals appear instantly without entering any username or password.' },
+                        { num: '2', title: 'Fatal Allergy Alerts:', text: 'High-contrast red banners warn paramedics against Penicillin and Sulfa administration.' },
+                        { num: '3', title: '1-Touch ICE Calling:', text: 'Paramedics tap direct dial buttons to notify Priya Sharma (Spouse) immediately.' },
+                        { num: '4', title: 'CPR Directives:', text: 'Full resuscitation directives and organ donor badges clearly visible at the top.' }
+                    ]
+                },
+                crew: {
+                    tag: '03 / PARAMEDIC & AMBULANCE 24/7 HUD',
+                    title: 'Live Tactical Radar & SOS Dispatch Mesh',
+                    desc: 'The field operations console for active EMS ambulance units. Monitors real-time GPS telemetry, proximity distress beacons within 2-3km, and tactical dispatch sheets.',
+                    status: 'PORTAL: AMBULANCE CREW HUD',
+                    steps: [
+                        { num: '1', title: '24/7 Tactical Radar:', text: 'Live Leaflet radar map plots active ambulance location and 3.0 KM dispatch perimeter.' },
+                        { num: '2', title: 'Proximity Distress Alert:', text: 'Pulsing red SOS logo markers appear at victim coordinates with audio chime.' },
+                        { num: '3', title: '1-Click Dispatch Deploy:', text: 'Paramedics review victim blood group and allergies, then click "Deploy Ambulance".' },
+                        { num: '4', title: 'Live Telemetry Route:', text: 'Real-time transit route is drawn, and patient dashboard is notified of ETA and crew unit.' }
+                    ]
+                },
+                doctor: {
+                    tag: '04 / PHYSICIAN CLINICAL SUITE',
+                    title: 'Clinical Copilot & AI Scribe Workstation',
+                    desc: 'The hospital and clinic consultation suite. Features AI Clinical Scribe dictation, differential diagnosis suggestions, and lethal drug contraindication checks.',
+                    status: 'PORTAL: DOCTOR CLINICAL SUITE',
+                    steps: [
+                        { num: '1', title: 'AI Dictation Scribe:', text: 'Dictate patient consultation audio or notes for instant clinical summarization.' },
+                        { num: '2', title: 'Differential Diagnosis:', text: '1-click AI diagnosis recommendations based on patient presenting complaints.' },
+                        { num: '3', title: 'Rx Safety Cross-Check:', text: 'Automated warnings if prescribed medication clashes with patient allergies.' },
+                        { num: '4', title: 'Hospital Admission:', text: 'Directly allocate trauma bays, ICU beds, and general wards during consult.' }
+                    ]
+                }
+            }
+        };
+
+        function setSimulatorDevice(device) {
+            SimState.device = device;
+            const phoneWrap = document.getElementById('simPhoneWrapper');
+            const laptopWrap = document.getElementById('simLaptopWrapper');
+            const phoneBtn = document.getElementById('simDevicePhoneBtn');
+            const laptopBtn = document.getElementById('simDeviceLaptopBtn');
+            const activeUrl = SimState.urls[SimState.screen];
+
+            if (device === 'phone') {
+                phoneWrap.classList.remove('hidden');
+                laptopWrap.classList.add('hidden');
+                phoneBtn.classList.add('active');
+                laptopBtn.classList.remove('active');
+                const iframe = document.getElementById('simPhoneIframe');
+                if (iframe && iframe.getAttribute('data-src') !== activeUrl) {
+                    iframe.src = activeUrl;
+                    iframe.setAttribute('data-src', activeUrl);
+                }
+            } else {
+                phoneWrap.classList.add('hidden');
+                laptopWrap.classList.remove('hidden');
+                phoneBtn.classList.remove('active');
+                laptopBtn.classList.add('active');
+                const iframe = document.getElementById('simLaptopIframe');
+                if (iframe && iframe.getAttribute('data-src') !== activeUrl) {
+                    iframe.src = activeUrl;
+                    iframe.setAttribute('data-src', activeUrl);
+                }
+            }
+        }
+
+        function setSimulatorScreen(screenKey) {
+            SimState.screen = screenKey;
+            const url = SimState.urls[screenKey];
+            const meta = SimState.metadata[screenKey];
+
+            // Update tab highlights
+            ['simTabPatientApp', 'simTabEmergency', 'simTabCrew', 'simTabDoctor'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove('active');
+            });
+            const tabMap = {
+                patient_app: 'simTabPatientApp',
+                emergency: 'simTabEmergency',
+                crew: 'simTabCrew',
+                doctor: 'simTabDoctor'
+            };
+            const activeTab = document.getElementById(tabMap[screenKey]);
+            if (activeTab) activeTab.classList.add('active');
+
+            // Update iframes
+            const phoneIframe = document.getElementById('simPhoneIframe');
+            const laptopIframe = document.getElementById('simLaptopIframe');
+            if (phoneIframe) {
+                phoneIframe.src = url;
+                phoneIframe.setAttribute('data-src', url);
+            }
+            if (laptopIframe) {
+                laptopIframe.src = url;
+                laptopIframe.setAttribute('data-src', url);
+            }
+
+            // Update external link
+            const extLink = document.getElementById('simExternalLink');
+            if (extLink) extLink.href = url;
+
+            // Update Guide Details
+            if (meta) {
+                const tagEl = document.getElementById('simGuideTag');
+                const titleEl = document.getElementById('simGuideTitle');
+                const descEl = document.getElementById('simGuideDesc');
+                const statusEl = document.getElementById('simFrameStatus');
+                const stepsEl = document.getElementById('simGuideSteps');
+
+                if (tagEl) tagEl.textContent = meta.tag;
+                if (titleEl) titleEl.textContent = meta.title;
+                if (descEl) descEl.textContent = meta.desc;
+                if (statusEl) statusEl.textContent = meta.status;
+
+                if (stepsEl && meta.steps) {
+                    stepsEl.innerHTML = meta.steps.map(s => `
+                        <div class="p-2.5 border-2 border-[#111111] bg-white flex items-start gap-2.5">
+                            <span class="font-black text-[#E11D2E]">${s.num}</span>
+                            <span><strong>${s.title}</strong> ${s.text}</span>
+                        </div>
+                    `).join('');
+                }
+            }
+        }
+
+        function simReloadFrame() {
+            const activeIframe = SimState.device === 'phone' 
+                ? document.getElementById('simPhoneIframe') 
+                : document.getElementById('simLaptopIframe');
+            if (activeIframe) {
+                activeIframe.src = SimState.urls[SimState.screen];
+            }
+        }
+
+        function simToggleTheme() {
+            const activeIframe = SimState.device === 'phone' 
+                ? document.getElementById('simPhoneIframe') 
+                : document.getElementById('simLaptopIframe');
+            try {
+                if (activeIframe && activeIframe.contentDocument) {
+                    const doc = activeIframe.contentDocument.documentElement;
+                    const cur = doc.getAttribute('data-theme') || 'dark';
+                    const next = cur === 'dark' ? 'light' : 'dark';
+                    doc.setAttribute('data-theme', next);
+                    try {
+                        activeIframe.contentWindow.localStorage.setItem('lifeqr_theme_manual', next);
+                        activeIframe.contentWindow.localStorage.setItem('lifeqr_theme', next);
+                    } catch(e){}
+                }
+            } catch(e){}
+        }
+
+        // Check if an existing session is active to highlight Dashboard in navigation
+        (async function checkNavbarSession() {
+            try {
+                const apiBase = (typeof window !== 'undefined' && window.location.origin) ? window.location.origin + '/api/v1' : '/api/v1';
+                const res = await fetch(`${apiBase}/auth/verify`, { credentials: 'include' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.user) {
+                        let dashUrl = 'patient_dashboard.html';
+                        if (data.user.role === 'doctor') dashUrl = 'doctor_dashboard.html';
+                        else if (data.user.role === 'crew') dashUrl = 'CrewAmbulance_dashboard.html';
+                        else if (data.user.role === 'hospital') dashUrl = 'hospital_dashboard.html';
+                        else if (data.user.role === 'admin') dashUrl = 'admin_dashboard.html';
+
+                        const headerSignIn = document.getElementById('landingHeaderSignInBtn');
+                        if (headerSignIn) {
+                            headerSignIn.href = dashUrl;
+                            headerSignIn.innerHTML = `<span class="inline-flex items-center gap-1.5 text-[#E11D2E] font-bold"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>DASHBOARD</span>`;
+                            headerSignIn.title = `Go to your ${data.user.role} dashboard`;
+                        }
+
+                        const mobileSignIn = document.getElementById('landingMobileDrawerSignInBtn');
+                        if (mobileSignIn) {
+                            mobileSignIn.href = dashUrl;
+                            mobileSignIn.innerHTML = `<span class="inline-flex items-center justify-center gap-1.5 text-[#E11D2E] font-bold"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>DASHBOARD (${data.user.role.toUpperCase()})</span>`;
+                        }
+                    }
+                }
+            } catch (err) {}
+        })();
     </script>
 </body>
 </html>

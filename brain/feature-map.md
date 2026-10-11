@@ -38,11 +38,14 @@
 - **Frontend Controller**: `doctor-dashboard.js`
 
 ### 7. Phase 1 Patient Mobile MVP Application
-- **Frontend App Shell**: [patient_app.html](file:///c:/Users/USER/Downloads/lifeqr-complete/app/patient_app.html)
-- **Mobile Controller**: [patient-app.js](file:///c:/Users/USER/Downloads/lifeqr-complete/app/js/patient-app.js)
-- **App Design System**: [patient-app.css](file:///c:/Users/USER/Downloads/lifeqr-complete/app/css/patient-app.css)
-- **Backend API Route**: [patientApp.js](file:///c:/Users/USER/Downloads/lifeqr-complete/backend/routes/v1/patientApp.js) (`/api/v1/patient-app/...`)
-- **Key Screens**: Splash $\rightarrow$ Login $\rightarrow$ Signup $\rightarrow$ OTP $\rightarrow$ Profile Setup $\rightarrow$ Home (My LifeQR, Medical Profile, Contacts, Records, Settings)
+- **Frontend App Shell**: [patient_app.html](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/patient_app.html) & [splash.html](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/splash.html)
+- **Mobile Controller**: [patient-app.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/js/patient-app.js)
+- **App Design System**: [patient-app.css](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/css/patient-app.css)
+- **Backend API Route**: [patientApp.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/backend/routes/v1/patientApp.js) (`/api/v1/patient-app/...`), [auth.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/backend/routes/v1/auth.js)
+- **Splash & Loading Engine**: Premium Cinematic Promotional Poster Visual (`lifeqr_splash_cinematic.jpg`) inspired by luxury automotive and dark thriller aesthetics, featuring an emergency night scene, brush typography, realistic rugged LifeQR hardware prototype, and real-time telemetry HUD progress tracking.
+- **App Lifecycle & Navigation**:
+  - *First Open*: Splash $\rightarrow$ Introduction & Permission Explanation Screen (explains Live GPS for SOS rescue radius, Emergency Notifications for ambulance ETA, Camera for QR badges) $\rightarrow$ Signup / Login $\rightarrow$ OTP $\rightarrow$ Profile Setup $\rightarrow$ Dashboard.
+  - *Regular Open*: Splash $\rightarrow$ Instant Token Verification $\rightarrow$ Dashboard (zero repeated login prompts).
 - **Database Models**: `User.js`, `PatientProfile.js`, `EmergencyContact.js`, `QRProfile.js`, `MedicalRecord.js`
 
 ### 8. Hospital & Clinic Operations Command Hub
@@ -92,3 +95,45 @@
 - **Backend Routes**: [hospitals.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/backend/routes/v1/hospitals.js) (`POST /api/v1/hospitals/admissions`, `PUT /api/v1/hospitals/admissions/:id/discharge`, `GET /api/v1/hospitals/metrics`, `GET /api/v1/hospitals/admissions`), [doctorAccess.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/backend/routes/v1/doctorAccess.js) (`GET /api/v1/doctor-access/history`).
 - **Database Models**: `PatientProfile.js` (`activities`, `medicalHistory`), `Hospital.js`, `Doctor.js`.
 - **Capabilities**: Real-time bed allocation (Trauma Bays 1-4, ICU Wing, General Wards), live bed count telemetry, Socket.IO broadcast (`hospital:er`, `doctor:all`, `patient:<userId>`), seamless cross-linking from physician workstation consultations into hospital command, and unified patient-facing timeline of doctor consultations and inpatient stays with trauma severity indicators.
+
+### 15. Tactical 24/7 Ambulance Radar Map & Proximity SOS Dispatch Mesh
+- **Frontend Views**: `#crewTacticalRadarMap`, `#crewActiveSosFeed`, `#sosDispatchModal` in [CrewAmbulance_dashboard.html](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/CrewAmbulance_dashboard.html); `#sosDispatchedTopBanner`, `#sosDispatchedModal` in [patient_dashboard.html](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/patient_dashboard.html).
+- **Frontend Logic**: [crew-dashboard.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/js/crew-dashboard.js) (`initCrewTacticalMap()`, `startCrewLiveTracking()`, `renderSosBeaconOnMap()`, `openSosDispatchModal()`, `acceptCurrentSosDispatch()`, `calculateDistanceKm()`); [patient-dashboard.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/js/patient-dashboard.js) (`handleSosDispatchAccepted()`, `playRescueChime()`, `closeSosDispatchedModal()`, `reopenSosDispatchedModal()`).
+- **Backend Routes**: [sos.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/backend/routes/v1/sos.js) (`POST /api/v1/sos/crew/location`, `GET /api/v1/sos/active`, `POST /api/v1/sos/accept`, `POST /api/v1/sos/sos`).
+- **Database Models**: `CrewProfile.js` (`currentLocation`, `status`), `AmbulanceCrew.js`, `PatientProfile.js` (`sosAlerts`, `activities`), `User.js`.
+- **Socket.IO Pipeline**: `sos-alert` (emits to `crew:all`), `sos-dispatch-accepted` (emits directly to `patient:<userId>` and `crew:all`), `sos-claimed` (emits to `crew:all`).
+- **Capabilities**: Active 24-hr live GPS tracking via `navigator.geolocation.watchPosition` with automatic backend push; dynamic 2.5–3.0 KM dispatch perimeter circle; Haversine proximity filtering with emergency synthesizer audio alarm; interactive pulsing red LifeQR SOS logo markers plotted at victim coordinates; 1-click modal dispatch review; immediate patient notification with crew name, direct 1-tap call button, vehicle unit, base station, and estimated arrival time. Zero demo delays.
+
+### 16. Ambulance Crew Duty Status Management (On-Duty / Off-Duty Toggle)
+- **Frontend Views**: `#crewDutyToggleBtn`, `#crewDutyStatusBadge`, `#crewDutyStateDesc` in [CrewAmbulance_dashboard.html](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/CrewAmbulance_dashboard.html).
+- **Frontend Logic**: [crew-dashboard.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/js/crew-dashboard.js) (`toggleCrewDutyStatus()`, `updateCrewDutyUI()`, `loadCrewDutyStatus()`).
+- **Backend Routes**: [ambulance.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/backend/routes/v1/ambulance.js) (`GET /api/v1/ambulance/duty-status`, `PUT /api/v1/ambulance/duty-status`).
+- **Database Models**: `CrewProfile.js` (`status`: `AVAILABLE` / `OFF_DUTY`, `dutyStatus`: `ON_DUTY` / `OFF_DUTY`), `AmbulanceCrew.js` (`isAvailable`, `dutyStatus`).
+- **Capabilities**: Crew members can switch between On-Duty and Off-Duty states directly from their dashboard. When off-duty, real-time geolocation push is halted, proximity emergency sirens are silenced, and incoming dispatch routing excludes the vehicle until they toggle back on-duty.
+
+### 17. Super-Administrator God Mode & Full Platform Command Center
+- **Frontend Views**:
+  - [app/admin_dashboard.html](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/admin_dashboard.html) and [website/admin_dashboard.html](file:///c:/Users/tarun/Downloads/lifeqr-complete/website/admin_dashboard.html)
+  - `#sectionSosCommand` (City-Wide Emergency SOS Incident Hub & Dispatch Override)
+  - `#sectionFleetControl` (Ambulance Fleet & Duty Master Command)
+  - `#sectionGodMode` (1-Click Platform Integrity Self-Healing & Live Audio/Visual Broadcast Console)
+  - `#adminCreateUserModal` (Universal User Account Creator with dynamic role forms for Patient, Doctor, Crew, Hospital, Admin)
+  - `#adminUserProfileModal` (Enhanced with God-Mode System Role Migration and User Purge)
+- **Frontend Logic**:
+  - [app/js/admin-dashboard.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/js/admin-dashboard.js) & [website/js/admin-dashboard.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/website/js/admin-dashboard.js)
+  - `openCreateUserModal()`, `handleAdminCreateUserSubmit()`, `adminDeleteUser()`, `adminRunSystemRepair()`, `adminSendBroadcast()`, `loadAdminSosIncidents()`, `adminOverrideSosStatus()`, `adminDeleteSos()`, `loadAdminFleet()`, `adminToggleCrewDuty()`, `adminDeleteTicket()`.
+- **Backend Routes**: [admin.js](file:///c:/Users/tarun/Downloads/lifeqr-complete/backend/routes/v1/admin.js)
+  - `POST /api/v1/admin/users`: Universal account creation across all 5 roles with auto-provisioned schemas and cryptographic QR code generation.
+  - `DELETE /api/v1/admin/users/:id`: Cascading account purge across all 11 system collections with admin self-lockout prevention.
+  - `PUT /api/v1/admin/users/:id/role`: Instant role promotion and schema migration.
+  - `GET /api/v1/admin/sos`: Aggregated emergency distress incidents across standalone and embedded schemas.
+  - `PUT /api/v1/admin/sos/:sosId/status`: Force status override (`RESOLVED`, `CREW_DISPATCHED`, `ACTIVE`).
+  - `DELETE /api/v1/admin/sos/:sosId`: Purge false alarm emergency beacons.
+  - `GET /api/v1/admin/crew/fleet`: Complete EMS fleet status, duty registry, and live coordinates.
+  - `PUT /api/v1/admin/crew/:crewId/duty`: Admin override to force ambulance crews On-Duty / Off-Duty.
+  - `POST /api/v1/admin/system/repair`: 1-Click Platform Integrity Self-Healing engine (audits all accounts, auto-heals missing profiles, synchronizes `UserSecurity`, re-mints corrupt QR codes, resolves stale >24h SOS beacons).
+  - `POST /api/v1/admin/broadcast`: Real-time system announcement audio/visual sirens dispatched over Socket.IO (`crew:all`, `doctor:all`, `patient:all`, or global).
+  - `DELETE /api/v1/admin/help-tickets/:id`: Help desk ticket purge.
+- **Database Models**: `User.js`, `UserSecurity.js`, `PatientProfile.js`, `DoctorProfile.js`, `Doctor.js`, `CrewProfile.js`, `AmbulanceCrew.js`, `HospitalProfile.js`, `Hospital.js`, `VerificationDocument.js`, `HelpTicket.js`, `EmergencyCredential.js`, `SOS.js`.
+- **Security & Reliability**: Strictly guarded by `auth` + `roles('admin')` middleware; admin self-deletion guard returns HTTP 400; zero demo mocks or bypass buttons; fully verified with automated test suites and real browser sessions.
+

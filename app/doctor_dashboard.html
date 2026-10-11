@@ -388,13 +388,6 @@
                 </div>
               </div>
 
-              <!-- Quick Demo Patient Button -->
-              <div class="flex items-center justify-between text-[10px] font-mono p-2 bg-[#f9fafb] border border-[#111111]/20">
-                <span class="text-gray-500">Quick Test:</span>
-                <button type="button" onclick="document.getElementById('patientQrId').value='RAH-D3200470'; searchPatient();" class="text-[#E11D2E] font-bold hover:underline">
-                  Rahul Sharma (RAH-D3200470)
-                </button>
-              </div>
 
               <!-- Camera QR Scanner Button -->
               <button onclick="startQRScanner()" class="btn-secondary w-full justify-center text-xs py-2.5 font-mono uppercase tracking-wider font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_#111111]">
@@ -453,7 +446,7 @@
           </div>
           <div class="max-w-md mx-auto space-y-1.5">
             <h3 class="font-black text-xl text-[#111111] uppercase tracking-tight">Physician Consultation Workspace</h3>
-            <p class="text-xs text-[#111111]/70 font-sans font-medium">Select a patient from the OPD Waiting Queue on the left, search a LifeQR ID, or launch a quick demo chart to start consultation.</p>
+            <p class="text-xs text-[#111111]/70 font-sans font-medium">Select a patient from the OPD Waiting Queue on the left or search a LifeQR ID to start consultation.</p>
           </div>
           <div class="flex flex-wrap items-center justify-center gap-2.5 pt-2 font-mono text-xs">
             <button type="button" onclick="callNextWaitingPatient()" class="btn-primary px-4 py-2 uppercase font-bold tracking-wider flex items-center gap-1.5 shadow-[2px_2px_0px_#111111]">

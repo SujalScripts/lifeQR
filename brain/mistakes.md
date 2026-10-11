@@ -188,3 +188,112 @@
 - **Root Cause**: The feature was an unrealistic placeholder mockup requiring non-existent specialized ambulance hardware telemetry connections.
 - **Fix**: Removed the "Hospital ER Pre-Arrival Uplink" card and "Stream to ER" button from both `app/CrewAmbulance_dashboard.html` and `website/CrewAmbulance_dashboard.html`. Cleaned up unused stream functions in `crew-dashboard.js`. Updated standby card to "Trauma Center Routing" and synchronized frontend directories via `scripts/sync-frontend.js`.
 - **Status**: Resolved.
+
+## Issue 026: Patient Mobile App Overlay Modal Leakage & Missing Home Medical Details
+- **Symptom**: In `patient_app.html`, upon authentication the add-contact and add-record modals rendered inline in the viewport over the content because `.modal-overlay` was unstyled. In addition, the Home dashboard only presented the QR code while critical patient vitals, severe allergies, and active medications were buried behind a separate tab.
+- **Root Cause**:
+  1. `app/css/patient-app.css` lacked styling rules for `.modal-overlay`, `.modal-overlay.active`, and `.home-subview.active`, causing un-instantiated modals to render inline in the mobile viewport.
+  2. `#tab-view-qr` only displayed the QR badge and action buttons without immediate clinical context (blood group, allergies, medications, emergency contacts).
+- **Fix**:
+  1. Rebuilt `app/css/patient-app.css` with fixed modal overlay styles (`z-index: 99999`, backdrop blur, `display: none` by default, active pop animations).
+  2. Integrated the **Critical Vitals & Medical Identity** card directly onto `#tab-view-qr`, providing a unified emergency view with Blood Group, Age, Gender, Donor status, Severe Allergies warning chips, Active Medications pills, Chronic Conditions, and 1-tap dialable Primary Emergency Contact.
+  3. Added a 1-click `⚡ Instant Demo Patient (Rahul Sharma)` sign-in button to `#screen-login` for instant testing.
+  4. Synchronized all changes between `app/` and `website/` via `scripts/sync-frontend.js`.
+- **Status**: Resolved.
+
+## Issue 027: Android Wrapper Outdated Host IP & Missing SDK Licenses
+- **Symptom**: Installing the debug APK onto a connected physical Android device resulted in `ERR_ADDRESS_UNREACHABLE` pointing to obsolete IP `http://192.168.100.82:5000/`. Compiling with Gradle failed due to unaccepted Android SDK 34 licenses, and ADB commands failed due to `unauthorized` device state and missing `platform-tools` in PATH.
+- **Root Cause**:
+  1. `MainActivity.java` had been edited but `app-debug.apk` had not been rebuilt.
+  2. Android SDK Command-Line tools and licenses were missing from `C:\Users\tarun\AppData\Local\Android\Sdk`.
+  3. Debug keystore signature mismatch between previous installation and fresh build (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`).
+  4. Date formatting in `patient-dashboard.js` rendered `Invalid Date` when timestamps were missing on hospital admission records.
+- **Fix**:
+  1. Downloaded Android SDK Platform-Tools and Command-Line tools, added to User PATH, and accepted all licenses via `sdkmanager.bat --licenses`.
+  2. Updated `MainActivity.java` with active LAN IP `http://192.168.100.144:5000`, automatic `http://127.0.0.1:5000` fallback (via `adb reverse tcp:5000 tcp:5000`), and HTML5 Geolocation enablement.
+  3. Added fine and coarse location permissions in `AndroidManifest.xml`.
+  4. Fixed `dateStr` formatting in `patient-dashboard.js` with fallback to `rawDate` and validation.
+  5. Uninstalled conflicting old package signature, compiled a fresh debug build with Gradle 8.2, and deployed successfully to connected Motorola device.
+- **Status**: Resolved.
+
+## Issue 028: Patient Mobile App Theme Discrepancy & System Mode Mismatch with Website
+- **Symptom**: When visiting the Patient Mobile App (`patient_app.html`), it defaulted to Dark Mode with muddy gray backgrounds (`#e5e7eb`), soft blur shadows, rounded pill buttons, and blue (`#2563EB`) accent chips, whereas the main website (`website/index.html`) opened in high-contrast Swiss Brutalist Light Mode (`#ffffff`, `#111111`, `#E11D2E` with crisp 2px solid borders, hard offset drop shadows, and top live telemetry status bar).
+- **Root Cause**:
+  1. `patient_app.html` had `<html lang="en" data-theme="dark">` hardcoded in the root HTML tag.
+  2. `app/css/patient-app.css` defined `--bg-app: #f9fafb`, `body { background-color: #e5e7eb }`, soft `box-shadow: 0 0 30px rgba(0,0,0,0.15)`, and blue laser/reticle colors (`#2563EB`).
+  3. `patient-app.js` defaulted theme fallback to `'dark'` (`localStorage.getItem('lifeqr_theme') || 'dark'`) and omitted updating `meta[name="theme-color"]` and `lifeqr_theme_manual`.
+  4. `patient_app.html` header used circular buttons (`border-radius: 50%`) and lacked the signature live telemetry ticker.
+- **Fix**:
+  1. Updated `patient_app.html` root tag to `<html lang="en">` with `<meta name="theme-color" content="#ffffff">` and zero-FOUC adaptive system head script.
+  2. Rebuilt `app/css/patient-app.css` tokens: pure white background (`#ffffff`), onyx black text (`#111111`), signal red accents (`#E11D2E`), 2px solid borders, and hard offset shadows (`8px 8px 0px #111111`).
+  3. Added the signature Live Telemetry Status Bar (`.app-telemetry-bar`) with pulsing `.live-dot` at the top of the mobile shell.
+  4. Aligned laser beam and reticle targeting to Signal Red (`#E11D2E`) and updated progress gradient to `#111111` to `#E11D2E`.
+  5. Replaced rounded buttons with crisp editorial square buttons and unified `.btn-primary`, `.btn-secondary`, and `.btn-link`.
+  6. Synchronized `initApp()` and `toggleTheme()` in `patient-app.js` with `theme.js`, `lifeqr_theme_manual`, and `meta[name="theme-color"]`.
+  7. Synchronized `app/` and `website/` via `scripts/sync-frontend.js`.
+- **Status**: Resolved.
+
+## Issue 029: Android SwipeRefreshLayout Intercepted Vertical Scroll-Up Gestures
+- **Symptom**: When scrolling down inside the app on an Android device, dragging downward to scroll back up was intercepted; instead of scrolling up, the native circular reload spinner appeared from the top and attempted to reload the page.
+- **Root Cause**:
+  1. `activity_main.xml` used `SwipeRefreshLayout` as the root element wrapping a `RelativeLayout` container that held the `WebView`.
+  2. `SwipeRefreshLayout.canChildScrollUp()` defaulted to querying its direct child (`RelativeLayout`), which has no vertical scroll offset and always returned `false`.
+  3. As a result, `SwipeRefreshLayout` considered the view permanently at `scrollY == 0`, intercepting every downward drag as a pull-to-refresh attempt.
+  4. In an emergency medical application, pull-to-reload also posed risk of accidental data/form loss and websocket disconnection.
+- **Fix**:
+  1. Removed `SwipeRefreshLayout` from `activity_main.xml` and hosted `WebView` directly in the root layout.
+  2. Removed all `SwipeRefreshLayout` dependencies, fields, and listeners from `MainActivity.java` and `app/build.gradle`.
+  3. Configured `webView.setOverScrollMode(View.OVER_SCROLL_NEVER)` for seamless, artifact-free scrolling.
+  4. Recompiled debug APK with Gradle and deployed fresh build to physical phone. Verified via ADB touch swipe tests that scrolling up and down functions smoothly without gesture hijacking.
+- **Status**: Resolved.
+
+## Issue 030: Purged Artificial Demo Shortcuts & Codified Zero Demo Features Rule
+- **Symptom**: Presence of quick "Demo" auto-fill buttons and bypass shortcuts across Doctor Workstation (`doctor_dashboard.html`), QR Scanner modal (`qr-scanner.js`), Patient App (`patient-app.js`), and landing page preview simulator (`landingpage.html`).
+- **Root Cause**: Convenience test shortcuts (`qrQuickDemoBtn`, `quickFillDemoPatient`, `simFillDemoPatient`) were previously injected into production views, violating the strict real-world medical platform standard.
+- **Fix**:
+  1. Codified the **Zero Demo Features Policy** as rule #4 under Core Engineering Principles in `AGENTS.md`, Section 5 in `brain/master-memory.md`, and Section 10 in `brain/patterns.md`.
+  2. Removed `Quick Demo Patient Button` and demo chart prompt from `doctor_dashboard.html`.
+  3. Removed `qrQuickDemoBtn` bypass button and handler from `qr-scanner.js`.
+  4. Removed `window.quickFillDemoPatient` from `patient-app.js`.
+  5. Removed simulator demo fill buttons and references from `landingpage.html`.
+  6. Synchronized `app/` and `website/` via `scripts/sync-frontend.js`.
+- **Status**: Resolved.
+
+## Issue 031: Patient App Desktop View Lacked Phone Proportions & Device Frame
+- **Symptom**: Accessing `http://localhost:5000/app` on desktop monitors rendered a generic 480px wide block with desktop scrollbars, double vertical scrolling, and no smartphone chassis or aspect ratio.
+- **Root Cause**: `patient-app.css` defined `.app-container` with arbitrary `max-width: 480px` and `height: 94vh; min-height: 840px;` without responsive phone framing, device presets, or hidden mobile scrollbars.
+- **Fix**:
+  1. Built the **Smartphone Hardware Chassis Simulator** (`.phone-stage-wrapper`, `#phoneMockupChassis`, `.phone-screen-viewport`) in [app/patient_app.html](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/patient_app.html) and [website/patient_app.html](file:///c:/Users/tarun/Downloads/lifeqr-complete/website/patient_app.html).
+  2. Implemented photorealistic smartphone hardware styling: 390px × 844px default dimensions, titanium bezel, physical side buttons, Dynamic Island camera pill, home indicator bar, and studio dot backdrop.
+  3. Added Desktop Simulator Control Toolbar with preset toggles: Standard Phone (390px), Compact (360px), Max (428px), and Fill Screen.
+  4. Hid bulky native desktop scrollbars inside the phone screen with `scrollbar-width: none` while preserving smooth native scrolling.
+  5. Kept 100% full-screen edge-to-edge responsiveness on actual mobile devices (`@media (max-width: 639px)`).
+  6. Synchronized directories via `scripts/sync-frontend.js`.
+- **Status**: Resolved.
+
+## Issue 033: Patient App Bottom Navigation Bar Scrolled Away with Page Content
+- **Symptom**: In `patient_app.html` (`http://localhost:5000/app`), the bottom navigation bar (`MY QR`, `MEDICAL`, `CONTACTS`, `RECORDS`, `SETTINGS`) was not fixed at the bottom of the screen. Users had to scroll all the way down past the QR code, vitals, and ICE contacts to reach it, and it scrolled out of view when scrolling up or down.
+- **Root Cause**:
+  1. `.bottom-nav` was styled with `position: absolute; bottom: 0;` inside `#screen-home` without a height-bounded flex parent.
+  2. Outer container `.app-container` had `overflow-y: auto;` and `#screen-home` expanded to the total scroll height of the active tab (1221px), placing `.bottom-nav` at the bottom of the scrollable document instead of the phone screen viewport.
+  3. On desktop monitors, `.phone-mockup-chassis` inherited `min-height: 100dvh;` which overrode `max-height: calc(100vh - 90px);`, causing the chassis to extend past the desktop window bottom and cut off the navigation bar.
+  4. `.nav-item` SVG and text spans lacked `pointer-events: none;`, occasionally misdirecting pointer event targets.
+- **Fix**:
+  1. Configured `#screen-home` as a fixed flex column container (`flex: 1 1 0%; min-height: 0; height: auto; overflow: hidden; position: relative; width: 100%;`).
+  2. Isolated scrolling to individual tab subviews (`.home-subview { flex: 1 1 0%; min-height: 0; overflow-y: auto; padding: 16px 18px 88px 18px; -webkit-overflow-scrolling: touch; }`), keeping both the top header and bottom navigation bar permanently locked in place.
+  3. Docked `.bottom-nav` permanently at the bottom of the phone screen (`position: absolute; bottom: 0; left: 0; right: 0; z-index: 60; box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12); padding-bottom: max(14px, env(safe-area-inset-bottom));`).
+  4. Updated desktop chassis styling in `@media (min-width: 640px)` with `min-height: 0; max-height: calc(100vh - 84px);` and reduced stage padding so the entire phone and bottom nav fit comfortably inside laptop viewports (e.g., 1536×776) without desktop scrollbars.
+  5. Added `pointer-events: none;` to `.nav-item svg, .nav-item span` and exposed `window.showTab`.
+  6. Synchronized directories via `scripts/sync-frontend.js` and empirically validated zero-pixel nav shift during scrolling across all tabs.
+- **Status**: Resolved.
+
+## Issue 034: "Create Badge" Auto-Logged In Instead of Loading Signup Page
+- **Symptom**: On the landing page (`index.html`), clicking "CREATE BADGE" or "CREATE FREE BADGE" immediately redirected the user into their existing dashboard (e.g. `patient_dashboard.html`) instead of loading the signup registration form (`lifeqr_signup.html`).
+- **Root Cause**: `lifeqr_signup.html` included `checkAuthPagesAccess()` from `auth-guard.js`, which unconditionally checked `/api/v1/auth/verify` and called `redirectUserToDashboard(user.role)` whenever a valid session cookie existed. When an authenticated user attempted to register a new account or create a badge, the signup form was bypassed completely by the script.
+- **Fix**:
+  1. Replaced `checkAuthPagesAccess()` in [website/lifeqr_signup.html](file:///c:/Users/tarun/Downloads/lifeqr-complete/website/lifeqr_signup.html) and [app/lifeqr_signup.html](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/lifeqr_signup.html) with non-blocking session check `checkExistingSession()`.
+  2. Implemented `#activeSessionBanner` displaying the active account's name and role, with direct buttons to `[Go to Dashboard]` and `[Sign Out]`, while leaving the full registration form 100% accessible and editable.
+  3. Added dynamic session awareness to the landing page navbar in [website/index.html](file:///c:/Users/tarun/Downloads/lifeqr-complete/website/index.html), [app/index.html](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/index.html), [website/landingpage.html](file:///c:/Users/tarun/Downloads/lifeqr-complete/website/landingpage.html), and [app/landingpage.html](file:///c:/Users/tarun/Downloads/lifeqr-complete/app/landingpage.html) so authenticated users clearly see `[DASHBOARD]` in the header while "Create Badge" reliably navigates to the registration form without redirection.
+- **Status**: Resolved.
+
+
