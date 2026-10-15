@@ -11,6 +11,10 @@ const { getFrontendUrl } = require('../../utils/frontendUrl');
 const { logEvent } = require('../../services/securityLogger');
 const { resolvePatientProfile } = require('../../utils/patientResolver');
 
+const {
+  buildOfflineEmergencyText
+} = require('../../utils/offlineEmergencyQr');
+
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
 
@@ -148,13 +152,34 @@ router.post('/', authenticateToken, async (req, res) => {
     });
 
     const credentialUrl = buildEmergencyUrl(rawToken);
-    const qrCodeDataURL = await QRCode.toDataURL(credentialUrl, {
-      errorCorrectionLevel: 'H',
-      type: 'image/png',
-      width: 300,
-      margin: 2,
-      color: { dark: '#000000', light: '#FFFFFF' }
+    // const qrCodeDataURL = await QRCode.toDataURL(credentialUrl, {
+    //   errorCorrectionLevel: 'H',
+    //   type: 'image/png',
+    //   width: 300,
+    //   margin: 2,
+    //   color: { dark: '#000000', light: '#FFFFFF' }
+    // });
+
+    const offlineEmergencyText = buildOfflineEmergencyText({
+      user,
+      profile: patientProfile,
+      qrCodeId: patientProfile.qrCodeId
     });
+
+    const qrCodeDataURL = await QRCode.toDataURL(
+      offlineEmergencyText,
+      {
+        errorCorrectionLevel: 'M',
+        type: 'image/png',
+        width: 600,
+        margin: 4,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      }
+    );
+
 
     res.json({
       id: credential._id,
@@ -264,13 +289,29 @@ router.post('/:id/rotate', authenticateToken, async (req, res) => {
     await credential.save();
 
     const credentialUrl = buildEmergencyUrl(rawToken);
-    const qrCodeDataURL = await QRCode.toDataURL(credentialUrl, {
-      errorCorrectionLevel: 'H',
-      type: 'image/png',
-      width: 300,
-      margin: 2,
-      color: { dark: '#000000', light: '#FFFFFF' }
+    
+
+    const offlineEmergencyText = buildOfflineEmergencyText({
+      user,
+      profile: patientProfile,
+      qrCodeId: patientProfile.qrCodeId
     });
+
+    const qrCodeDataURL = await QRCode.toDataURL(
+      offlineEmergencyText,
+      {
+        errorCorrectionLevel: 'M',
+        type: 'image/png',
+        width: 600,
+        margin: 4,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      }
+    );
+
+    
 
     res.json({
       id: credential._id,

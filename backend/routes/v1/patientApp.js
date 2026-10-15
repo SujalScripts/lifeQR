@@ -11,6 +11,9 @@ const { authenticateToken } = require('../../middleware/auth');
 const { getFrontendUrl } = require('../../utils/frontendUrl');
 const { logEvent } = require('../../services/securityLogger');
 
+const {
+  buildOfflineEmergencyText
+} = require('../../utils/offlineEmergencyQr');
 const router = express.Router();
 
 // Helper to generate a clean, secure QR code identifier
@@ -117,6 +120,40 @@ router.get('/profile', authenticateToken, async (req, res) => {
         await profile.save();
       }
     }
+
+
+    // PHASE 1: Generate an offline-readable emergency QR snapshot.
+    const offlineEmergencyText = buildOfflineEmergencyText({
+      user,
+      profile,
+      contacts,
+      qrCodeId: qrProfile.qrCodeId
+    });
+
+    const offlineQrDataUrl = await QRCode.toDataURL(
+      offlineEmergencyText,
+      {
+        errorCorrectionLevel: 'M',
+        type: 'image/png',
+        width: 600,
+        margin: 4,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      }
+    );
+
+    // Store the latest generated QR image.
+    qrProfile.qrImageUrl = offlineQrDataUrl;
+    await qrProfile.save();
+
+    // Keep the legacy patient-profile QR field in sync.
+    // if (profile) {
+    //   profile.qrCode = offlineQrDataUrl;
+    //   await profile.save();
+    // }
+    
 
     // Get medical records
     const records = await MedicalRecord.find({ userId: user._id }).sort({ recordDate: -1, createdAt: -1 });
@@ -282,6 +319,42 @@ router.get('/qr', authenticateToken, async (req, res) => {
         qrImageUrl: qrDataUrl
       });
     }
+
+
+    // PHASE 1: Refresh the offline QR using the latest profile.
+    const emergencyContacts = await EmergencyContact.find({
+      userId: user._id
+    }).sort({ priority: 1, createdAt: 1 });
+
+    const offlineEmergencyText = buildOfflineEmergencyText({
+      user,
+      profile,
+      contacts: emergencyContacts,
+      qrCodeId: qrProfile.qrCodeId
+    });
+
+    const offlineQrDataUrl = await QRCode.toDataURL(
+      offlineEmergencyText,
+      {
+        errorCorrectionLevel: 'M',
+        type: 'image/png',
+        width: 600,
+        margin: 4,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      }
+    );
+
+    qrProfile.qrImageUrl = offlineQrDataUrl;
+    await qrProfile.save();
+
+    // if (profile) {
+    //   profile.qrCode = offlineQrDataUrl;
+    //   await profile.save();
+    // }
+  
 
     res.json({
       success: true,
